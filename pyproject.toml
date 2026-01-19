@@ -1,0 +1,15 @@
+[project]
+name = "biomedical-abstract-explorer"
+version = "0.1.0"
+description = "Retrieve all works and abstracts for an author from OpenAlex with PubMed fallback"
+requires-python = ">=3.11"
+dependencies = [
+    "pyalex>=0.13",
+    "biopython>=1.81",
+    "requests>=2.28",
+    "tqdm>=4.64",
+]
+
+[project.scripts]
+abstract-digger = "main:main"
+

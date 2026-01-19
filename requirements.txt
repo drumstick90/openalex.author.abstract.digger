@@ -1,0 +1,22 @@
+# Requires Python 3.11+
+
+# Web framework
+flask>=3.0
+
+# Production WSGI server
+gunicorn>=21.0
+
+# OpenAlex API client
+pyalex>=0.13
+
+# PubMed fallback (Bio.Entrez)
+biopython>=1.81
+
+# Utilities
+requests>=2.28
+python-dotenv>=1.0          # Load .env files
+tqdm>=4.64            # Progress bars for large fetches
+
+# Future RAG indexing (uncomment when needed)
+# sentence-transformers>=2.2
+# chromadb>=0.4

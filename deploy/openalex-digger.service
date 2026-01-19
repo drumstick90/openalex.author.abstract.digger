@@ -1,0 +1,25 @@
+# Systemd service file for Biomedical Abstract Explorer
+# Copy to: /etc/systemd/system/openalex-digger.service
+
+[Unit]
+Description=Biomedical Abstract Explorer Web Application
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/openalex-digger
+Environment="PATH=/opt/openalex-digger/venv/bin"
+EnvironmentFile=/opt/openalex-digger/.env
+ExecStart=/opt/openalex-digger/venv/bin/gunicorn --config /opt/openalex-digger/deploy/gunicorn.conf.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

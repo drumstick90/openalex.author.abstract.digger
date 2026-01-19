@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomedical Abstract Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --white: #fafafa;
+            --gray-50: #f5f5f5;
+            --gray-100: #e5e5e5;
+            --gray-200: #d4d4d4;
+            --gray-300: #a3a3a3;
+            --gray-400: #737373;
+            --gray-500: #525252;
+            --gray-600: #404040;
+            --gray-700: #262626;
+            --gray-800: #171717;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--white);
+            color: var(--black);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Geometric pattern background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 1px 1px, var(--gray-200) 1px, transparent 0);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 2.5rem 0 1.5rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Intro Section */
+        .intro {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out 0.15s both;
+        }
+
+        .intro-tagline {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            font-style: italic;
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .intro-usecases {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gray-400);
+        }
+
+        .intro-usecases span {
+            padding: 0 1rem;
+            border-right: 1px solid var(--gray-300);
+            transition: color 0.2s ease;
+        }
+
+        .intro-usecases span:last-child {
+            border-right: none;
+        }
+
+        .intro-usecases span:hover {
+            color: var(--black);
+        }
+
+        @media (max-width: 640px) {
+            .intro-usecases {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .intro-usecases span {
+                border-right: none;
+                padding: 0;
+            }
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.75rem;
+            color: var(--black);
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--gray-400);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        /* Search Form */
+        .search-section {
+            background: var(--white);
+            border: 2px solid var(--black);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out 0.1s both;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .field-hint {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--gray-400);
+            margin-top: 0.35rem;
+            line-height: 1.4;
+        }
+
+        input {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            padding: 1rem;
+            font-size: 1rem;
+            color: var(--black);
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--black);
+            background: var(--white);
+        }
+
+        input::placeholder {
+            color: var(--gray-300);
+        }
+
+        button {
+            background: var(--black);
+            border: 2px solid var(--black);
+            padding: 1rem 2.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--white);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        button:hover {
+            background: var(--white);
+            color: var(--black);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        button:disabled:hover {
+            background: var(--black);
+            color: var(--white);
+        }
+
+        /* Loading State */
+        .loader {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        button.loading .btn-text { display: none; }
+        button.loading .loader { display: inline-block; }
+
+        /* Error Message */
+        .error-message {
+            background: var(--gray-50);
+            border-left: 4px solid var(--black);
+            padding: 1rem 1.25rem;
+            color: var(--black);
+            margin-top: 1.5rem;
+            display: none;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .error-message.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Progress Indicator */
+        .progress-container {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+        }
+
+        .progress-container.visible {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .progress-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .progress-eta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .progress-bar-container {
+            height: 4px;
+            background: var(--gray-200);
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--black);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-bar.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .progress-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .progress-spinner {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid var(--gray-300);
+            border-top-color: var(--black);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        .progress-live {
+            margin-top: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .progress-live:empty {
+            display: none;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Author Card */
+        .author-card {
+            background: var(--white);
+            border: 2px solid var(--black);
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .author-card::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: -8px;
+            bottom: -8px;
+            border: 2px solid var(--black);
+            z-index: -1;
+        }
+
+        .author-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .author-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .meta-item {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .meta-value {
+            display: block;
+            color: var(--black);
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 0.25rem;
+            letter-spacing: normal;
+            text-transform: none;
+        }
+
+        .affiliations {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .affiliation-tag {
+            display: inline-block;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--gray-600);
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Publication Timeline */
+        .timeline-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .timeline-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-500);
+        }
+
+        .timeline-range {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .timeline-chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 120px;
+        }
+
+        .timeline-chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media (max-width: 640px) {
+            .timeline-chart-wrapper {
+                height: 100px;
+            }
+        }
+
+        /* Works Header */
+        .works-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--black);
+        }
+
+        .works-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .works-count {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--gray-500);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Work Cards */
+        .works-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .work-card {
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1.75rem 0;
+            transition: all 0.15s ease;
+        }
+
+        .work-card:first-of-type {
+            border-top: none;
+        }
+
+        .work-card:hover {
+            background: var(--gray-50);
+            padding-left: 1rem;
+            margin-left: -1rem;
+            padding-right: 1rem;
+            margin-right: -1rem;
+        }
+
+        .work-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .work-title a {
+            color: var(--black);
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .work-title a:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .work-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            margin-bottom: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .work-year {
+            font-weight: 500;
+            color: var(--black);
+        }
+
+        .work-type {
+            text-transform: capitalize;
+        }
+
+        .work-citations {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .abstract {
+            background: var(--gray-50);
+            padding: 1.25rem;
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            line-height: 1.8;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1rem;
+        }
+
+        .abstract-missing {
+            color: var(--gray-400);
+            font-style: italic;
+        }
+
+        /* Source Badges */
+        .source-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.6rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-family: 'IBM Plex Mono', monospace;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+        }
+
+        .source-badge.openalex {
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .source-badge.pubmed {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .source-badge.none {
+            background: transparent;
+            color: var(--gray-400);
+            border: 1px solid var(--gray-300);
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-item strong {
+            font-size: 1rem;
+        }
+
+        /* Disambiguation Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 10, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal {
+            background: var(--white);
+            border: 2px solid var(--black);
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .modal-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-subtitle {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--black);
+            background: none;
+        }
+
+        .modal-body {
+            padding: 1.5rem 2rem;
+            overflow-y: auto;
+        }
+
+        .candidate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .candidate-card {
+            background: var(--gray-50);
+            border: 2px solid transparent;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .candidate-card:hover {
+            border-color: var(--gray-300);
+        }
+
+        .candidate-card.selected {
+            border-color: var(--black);
+            background: var(--white);
+        }
+
+        .candidate-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--black);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .candidate-content {
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-count {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .candidate-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .candidate-orcid {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--gray-600);
+            background: var(--gray-200);
+            padding: 0.15rem 0.4rem;
+        }
+
+        .candidate-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.75rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--gray-500);
+            margin-bottom: 0.5rem;
+        }
+
+        .candidate-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .candidate-stat strong {
+            color: var(--black);
+        }
+
+        .candidate-affiliations {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .candidate-affiliation {
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 4rem 0;
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        footer a {
+            color: var(--black);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Checkbox styling */
+        .checkbox-label {
+            font-family: 'IBM Plex Mono', monospace !important;
+            font-size: 0.75rem !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2.25rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .author-meta {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .author-card::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Biomedical Abstract Explorer</h1>
+            <p class="subtitle">Academic works & abstracts explorer</p>
+        </header>
+
+        <div class="intro">
+            <p class="intro-tagline">
+                Fetch any researcher's complete publication history, then chat with their abstracts using AI.
+            </p>
+            <div class="intro-usecases">
+                <span>Prep for PI interviews</span>
+                <span>Literature reviews</span>
+                <span>Know your collaborators</span>
+                <span>Grant writing research</span>
+            </div>
+        </div>
+
+        <section class="search-section">
+            <form id="searchForm">
+                <div class="form-group full-width">
+                    <label for="identifier">Author Name or ID</label>
+                    <input 
+                        type="text" 
+                        id="identifier" 
+                        name="identifier" 
+                        placeholder="e.g. &quot;Jane Smith&quot;, A5023888391, or 0000-0002-1825-0097"
+                        value="pietro carmellini"
+                        required
+                    >
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Your Email (optional)</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="you@university.edu"
+                            value="pier.laurenzi@gmail.com"
+                        >
+                        <span class="field-hint">Joins OpenAlex's "polite pool" for faster, more reliable API access</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="affiliation">Affiliation Hint (optional)</label>
+                        <input 
+                            type="text" 
+                            id="affiliation" 
+                            name="affiliation" 
+                            placeholder="University name for disambiguation"
+                        >
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom: 1.5rem;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; text-transform: none; letter-spacing: normal;">
+                        <input type="checkbox" id="pubmedFallback" name="pubmedFallback" style="width: auto; accent-color: var(--black);" checked>
+                        <span style="color: var(--gray-500);">Enable PubMed fallback for missing abstracts</span>
+                        <span style="color: var(--gray-400); font-size: 0.7rem;">(slower)</span>
+                    </label>
+                </div>
+                <button type="submit" id="searchBtn">
+                    <span class="btn-text">Search</span>
+                    <span class="loader"></span>
+                </button>
+            </form>
+            <div class="error-message" id="errorMessage"></div>
+            
+            <!-- Progress Indicator -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <span class="progress-title" id="progressTitle">Fetching works...</span>
+                    <span class="progress-eta" id="progressEta"></span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-details">
+                    <span class="progress-status">
+                        <span class="progress-spinner"></span>
+                        <span id="progressStatus">Starting...</span>
+                    </span>
+                    <span id="progressCount"></span>
+                </div>
+                <!-- Live status line -->
+                <div class="progress-live" id="progressLive"></div>
+            </div>
+        </section>
+
+        <section class="results-section" id="resultsSection">
+            <div class="author-card" id="authorCard">
+                <h2 class="author-name" id="authorName"></h2>
+                <div class="author-meta">
+                    <div class="meta-item">
+                        <span>Works</span>
+                        <span class="meta-value" id="worksCount"></span>
+                    </div>
+                    <div class="meta-item">
+                        <span>Citations</span>
+                        <span class="meta-value" id="citationsCount"></span>
+                    </div>
+                    <div class="meta-item">
+                        <span>ID</span>
+                        <span class="meta-value" id="authorId"></span>
+                    </div>
+                    <div class="meta-item" id="orcidContainer" style="display: none;">
+                        <span>ORCID</span>
+                        <span class="meta-value" id="authorOrcid"></span>
+                    </div>
+                </div>
+                <div class="affiliations" id="affiliationsContainer"></div>
+                
+                <!-- Publication Timeline -->
+                <div class="timeline-section" id="timelineSection" style="display: none;">
+                    <div class="timeline-header">
+                        <h4 class="timeline-title">Publication Timeline</h4>
+                        <span class="timeline-range" id="timelineRange"></span>
+                    </div>
+                    <div class="timeline-chart-wrapper">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="works-header">
+                <h3 class="works-title">Works</h3>
+                <span class="works-count" id="displayedWorksCount"></span>
+            </div>
+
+            <div class="works-list" id="worksList"></div>
+        </section>
+
+        <footer>
+            Powered by <a href="https://openalex.org" target="_blank">OpenAlex</a>
+        </footer>
+    </div>
+
+    <!-- Disambiguation Modal -->
+    <div class="modal-overlay" id="disambiguationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">Multiple Authors Found</h2>
+                    <p class="modal-subtitle" id="disambiguationQuery"></p>
+                </div>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="candidate-list" id="candidateList"></div>
+            </div>
+            <div class="modal-footer">
+                <span class="selected-count" id="selectedCount">0 selected</span>
+                <button id="fetchSelectedBtn" disabled>
+                    <span class="btn-text">Fetch Selected</span>
+                    <span class="loader"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const searchBtn = document.getElementById('searchBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const disambiguationModal = document.getElementById('disambiguationModal');
+        const candidateList = document.getElementById('candidateList');
+        const closeModal = document.getElementById('closeModal');
+        const disambiguationQuery = document.getElementById('disambiguationQuery');
+
+        // Close modal handlers
+        closeModal.addEventListener('click', () => {
+            disambiguationModal.classList.remove('visible');
+        });
+        
+        disambiguationModal.addEventListener('click', (e) => {
+            if (e.target === disambiguationModal) {
+                disambiguationModal.classList.remove('visible');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && disambiguationModal.classList.contains('visible')) {
+                disambiguationModal.classList.remove('visible');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset state
+            errorMessage.classList.remove('visible');
+            resultsSection.classList.remove('visible');
+            disambiguationModal.classList.remove('visible');
+            hideProgress();
+            clearProgressLog();
+            searchBtn.classList.add('loading');
+            searchBtn.disabled = true;
+
+            const identifier = document.getElementById('identifier').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const affiliation = document.getElementById('affiliation').value.trim();
+            const pubmedFallback = document.getElementById('pubmedFallback').checked;
+            
+            // Generate session ID for SSE progress streaming
+            const sessionId = generateSessionId();
+
+            try {
+                showProgress('Searching...', 'Looking up author', null, null);
+                
+                // Start SSE stream first and wait for connection
+                await startProgressStream(sessionId);
+                
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        identifier, 
+                        email, 
+                        affiliation, 
+                        pubmed_fallback: pubmedFallback,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    hideProgress();
+                    throw new Error(data.error || 'Something went wrong');
+                }
+
+                // Check if disambiguation is needed
+                if (data.needs_disambiguation) {
+                    hideProgress();
+                    showDisambiguation(data);
+                } else {
+                    // Direct result - show it
+                    hideProgress();
+                    displayResults(data);
+                }
+
+            } catch (error) {
+                hideProgress();
+                errorMessage.textContent = error.message;
+                errorMessage.classList.add('visible');
+            } finally {
+                searchBtn.classList.remove('loading');
+                searchBtn.disabled = false;
+            }
+        });
+
+        let selectedAuthors = new Set();
+        const fetchSelectedBtn = document.getElementById('fetchSelectedBtn');
+        const selectedCount = document.getElementById('selectedCount');
+
+        function updateSelectedCount() {
+            const count = selectedAuthors.size;
+            selectedCount.textContent = `${count} selected`;
+            fetchSelectedBtn.disabled = count === 0;
+        }
+
+        function showDisambiguation(data) {
+            selectedAuthors.clear();
+            authorWorkCounts = {}; // Reset
+            updateSelectedCount();
+            
+            // Cache work counts for ETA estimation
+            data.candidates.forEach(c => {
+                authorWorkCounts[c.id] = c.works_count || 50;
+                authorWorkCounts[c.id + '_name'] = c.display_name;
+            });
+            
+            disambiguationQuery.textContent = `${data.candidates.length} matches for "${data.query}"`;
+            
+            candidateList.innerHTML = data.candidates.map(candidate => `
+                <div class="candidate-card" data-author-id="${candidate.id}">
+                    <input type="checkbox" class="candidate-checkbox" data-author-id="${candidate.id}">
+                    <div class="candidate-content">
+                        <div class="candidate-name">
+                            ${escapeHtml(candidate.display_name)}
+                            ${candidate.orcid 
+                                ? `<span class="candidate-orcid">ORCID</span>` 
+                                : ''
+                            }
+                        </div>
+                        <div class="candidate-stats">
+                            <span class="candidate-stat">
+                                <strong>${candidate.works_count?.toLocaleString() || 0}</strong> works
+                            </span>
+                            <span class="candidate-stat">
+                                <strong>${candidate.cited_by_count?.toLocaleString() || 0}</strong> citations
+                            </span>
+                            <span class="candidate-stat" style="color: var(--gray-400);">
+                                ${candidate.id}
+                            </span>
+                        </div>
+                        ${candidate.affiliations && candidate.affiliations.filter(a => a).length > 0 
+                            ? `<div class="candidate-affiliations">
+                                ${candidate.affiliations.filter(a => a).map(a => 
+                                    `<span class="candidate-affiliation">${escapeHtml(a)}</span>`
+                                ).join(' · ')}
+                               </div>`
+                            : ''
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers to candidates (toggle checkbox)
+            candidateList.querySelectorAll('.candidate-card').forEach(card => {
+                const checkbox = card.querySelector('.candidate-checkbox');
+                
+                card.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    
+                    const authorId = card.dataset.authorId;
+                    if (checkbox.checked) {
+                        selectedAuthors.add(authorId);
+                        card.classList.add('selected');
+                    } else {
+                        selectedAuthors.delete(authorId);
+                        card.classList.remove('selected');
+                    }
+                    updateSelectedCount();
+                });
+            });
+
+            disambiguationModal.classList.add('visible');
+        }
+
+        // Fetch selected authors button
+        fetchSelectedBtn.addEventListener('click', () => fetchSelectedAuthors());
+
+        // Progress indicator elements
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressTitle = document.getElementById('progressTitle');
+        const progressEta = document.getElementById('progressEta');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressCount = document.getElementById('progressCount');
+        const progressLive = document.getElementById('progressLive');
+
+        // Cached author work counts from disambiguation
+        let authorWorkCounts = {};
+        
+        // Current SSE connection
+        let currentEventSource = null;
+        
+        // Generate unique session ID
+        function generateSessionId() {
+            return 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showProgress(title, status, eta = null, percent = null) {
+            progressContainer.classList.add('visible');
+            progressTitle.textContent = title;
+            progressStatus.textContent = status;
+            
+            if (eta) {
+                progressEta.textContent = `ETA: ${eta}`;
+            } else {
+                progressEta.textContent = '';
+            }
+            
+            if (percent !== null) {
+                progressBar.classList.remove('indeterminate');
+                progressBar.style.width = `${Math.min(100, percent)}%`;
+            } else {
+                progressBar.classList.add('indeterminate');
+                progressBar.style.width = '';
+            }
+        }
+
+        function hideProgress() {
+            progressContainer.classList.remove('visible');
+            // Close SSE connection if open
+            if (currentEventSource) {
+                currentEventSource.close();
+                currentEventSource = null;
+            }
+        }
+        
+        function clearProgressLog() {
+            progressLive.textContent = '';
+        }
+        
+        function updateLiveStatus(message) {
+            progressLive.textContent = message;
+        }
+        
+        // Returns a promise that resolves when SSE connection is ready (received "Connected" message)
+        function startProgressStream(sessionId) {
+            return new Promise((resolve) => {
+            // Close existing connection
+            if (currentEventSource) {
+                currentEventSource.close();
+            }
+                
+                let resolved = false;
+                const safeResolve = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+            
+            currentEventSource = new EventSource(`/api/progress/${sessionId}`);
+            
+            currentEventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                        
+                        // Resolve when we get the "Connected" message - this means queue exists server-side
+                        if (data.phase === 'connected') {
+                            safeResolve();
+                        }
+                    
+                    // Update progress bar if percentage provided
+                    if (data.progress !== undefined) {
+                        progressBar.classList.remove('indeterminate');
+                        progressBar.style.width = `${Math.min(100, data.progress)}%`;
+                    }
+                    
+                    // Update live status line (single line, replaces previous)
+                    if (data.message) {
+                        updateLiveStatus(data.message);
+                    }
+                    
+                    // Handle completion
+                    if (data.phase === 'complete' || data.phase === 'error') {
+                        currentEventSource.close();
+                        currentEventSource = null;
+                    }
+                } catch (e) {
+                    console.error('Error parsing SSE data:', e);
+                }
+            };
+            
+            currentEventSource.onerror = () => {
+                // SSE connection error - might be normal closure
+                if (currentEventSource) {
+                    currentEventSource.close();
+                    currentEventSource = null;
+                }
+                    // Resolve anyway to not block the fetch
+                    safeResolve();
+            };
+                
+                // Timeout safety - don't block forever if SSE fails to connect
+                setTimeout(safeResolve, 1000);
+            });
+        }
+
+        function formatEta(seconds) {
+            if (seconds < 60) return `~${Math.ceil(seconds)}s`;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.ceil(seconds % 60);
+            return `~${mins}m ${secs}s`;
+        }
+
+        function estimateTime(worksCount) {
+            // Estimate: ~0.4s per work (OpenAlex fetch + possible PubMed fallback)
+            // Add overhead for pagination
+            const perWork = 0.4;
+            const overhead = 2;
+            return worksCount * perWork + overhead;
+        }
+
+        async function fetchSelectedAuthors() {
+            const authorIds = Array.from(selectedAuthors);
+            if (authorIds.length === 0) return;
+
+            disambiguationModal.classList.remove('visible');
+            fetchSelectedBtn.classList.add('loading');
+            fetchSelectedBtn.disabled = true;
+            searchBtn.classList.add('loading');
+            searchBtn.disabled = true;
+            errorMessage.classList.remove('visible');
+            clearProgressLog();
+
+            // Calculate total works and ETA
+            let totalWorks = 0;
+            authorIds.forEach(id => {
+                totalWorks += authorWorkCounts[id] || 50; // Default estimate
+            });
+            const estimatedSeconds = estimateTime(totalWorks);
+            
+            showProgress(
+                `Fetching ${authorIds.length} author${authorIds.length > 1 ? 's' : ''}...`,
+                `Preparing to fetch ${totalWorks.toLocaleString()} works`,
+                formatEta(estimatedSeconds),
+                0
+            );
+
+            const startTime = Date.now();
+            const results = [];
+            let completedAuthors = 0;
+
+            try {
+                // Fetch authors sequentially to show progress (parallel would be faster but no progress)
+                const pubmedFallback = document.getElementById('pubmedFallback').checked;
+                
+                for (const authorId of authorIds) {
+                    const authorName = authorWorkCounts[authorId + '_name'] || authorId;
+                    const authorWorks = authorWorkCounts[authorId] || 50;
+                    
+                    progressStatus.textContent = `Fetching ${authorName}...`;
+                    progressCount.textContent = `${completedAuthors + 1} of ${authorIds.length} authors`;
+                    
+                    // Generate session ID for this author's SSE stream
+                    const sessionId = generateSessionId();
+                    await startProgressStream(sessionId);  // Wait for SSE connection before fetch
+                    
+                    const response = await fetch(`/api/author/${authorId}/works?pubmed_fallback=${pubmedFallback}&session_id=${sessionId}`);
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.error || `Failed to fetch ${authorId}`);
+                    }
+                    
+                    const data = await response.json();
+                    results.push(data);
+                    completedAuthors++;
+                    
+                    // Update progress
+                    const percent = (completedAuthors / authorIds.length) * 100;
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const remaining = (elapsed / completedAuthors) * (authorIds.length - completedAuthors);
+                    
+                    showProgress(
+                        `Fetching ${authorIds.length} author${authorIds.length > 1 ? 's' : ''}...`,
+                        `Completed ${authorName}`,
+                        remaining > 0 ? formatEta(remaining) : 'Almost done...',
+                        percent
+                    );
+                }
+
+                hideProgress();
+                
+                // Combine results from all authors
+                displayCombinedResults(results);
+
+            } catch (error) {
+                hideProgress();
+                errorMessage.textContent = error.message;
+                errorMessage.classList.add('visible');
+            } finally {
+                fetchSelectedBtn.classList.remove('loading');
+                searchBtn.classList.remove('loading');
+                searchBtn.disabled = false;
+            }
+        }
+
+        async function selectCandidate(authorId) {
+            // Single author selection (for backwards compatibility)
+            selectedAuthors.clear();
+            selectedAuthors.add(authorId);
+            await fetchSelectedAuthors();
+        }
+
+        function getSourceBadge(source) {
+            if (!source) {
+                return '<span class="source-badge none">—</span>';
+            }
+            if (source === 'openalex') {
+                return '<span class="source-badge openalex">OA</span>';
+            }
+            if (source.startsWith('pubmed')) {
+                return '<span class="source-badge pubmed">PM</span>';
+            }
+            return `<span class="source-badge">${source}</span>`;
+        }
+
+        function displayCombinedResults(resultsArray) {
+            // Handle single author case
+            if (resultsArray.length === 1) {
+                displayResults(resultsArray[0]);
+                return;
+            }
+
+            // Combine multiple authors' results
+            const authors = resultsArray.map(r => r.author);
+            
+            // Deduplicate works by openalex_id (co-authored papers appear in multiple authors)
+            const worksMap = new Map();
+            resultsArray.forEach(r => {
+                (r.works || []).forEach(work => {
+                    if (!worksMap.has(work.openalex_id)) {
+                        worksMap.set(work.openalex_id, work);
+                    }
+                });
+            });
+            const allWorks = Array.from(worksMap.values());
+            
+            // Sort by year (newest first)
+            allWorks.sort((a, b) => (b.publication_year || 0) - (a.publication_year || 0));
+            
+            // Recalculate stats from deduplicated works
+            const totalStats = { openalex: 0, pubmed: 0, none: 0 };
+            allWorks.forEach(work => {
+                if (work.abstract_source === 'openalex') {
+                    totalStats.openalex++;
+                } else if (work.abstract_source && work.abstract_source.startsWith('pubmed')) {
+                    totalStats.pubmed++;
+                } else {
+                    totalStats.none++;
+                }
+            });
+
+            // Multiple authors header
+            document.getElementById('authorName').textContent = authors.map(a => a.display_name).join(' + ');
+            document.getElementById('worksCount').textContent = allWorks.length.toLocaleString();
+            
+            // Sum up citations
+            const totalCitations = authors.reduce((sum, a) => sum + (a.cited_by_count || 0), 0);
+            document.getElementById('citationsCount').textContent = totalCitations.toLocaleString();
+            
+            document.getElementById('authorId').textContent = authors.map(a => a.id).join(', ');
+            document.getElementById('orcidContainer').style.display = 'none';
+            
+            // Show all affiliations
+            const allAffiliations = [...new Set(authors.flatMap(a => a.affiliations || []).filter(Boolean))];
+            const affiliationsContainer = document.getElementById('affiliationsContainer');
+            if (allAffiliations.length > 0) {
+                affiliationsContainer.innerHTML = allAffiliations
+                    .map(a => `<span class="affiliation-tag">${escapeHtml(a)}</span>`)
+                    .join('');
+                affiliationsContainer.style.display = 'block';
+            } else {
+                affiliationsContainer.style.display = 'none';
+            }
+
+            // Render timeline chart
+            renderTimeline(allWorks);
+
+            displayWorksWithStats(allWorks, totalStats);
+            
+            // Create a combined data object for RAG UI hook (displayResults is hooked by rag_ui.js)
+            // Build a synthetic "author" for the combined view
+            const combinedData = {
+                author: {
+                    id: authors.map(a => a.id).join('+'),
+                    display_name: authors.map(a => a.display_name).join(' + '),
+                    works_count: allWorks.length,
+                    cited_by_count: totalCitations,
+                    affiliations: allAffiliations
+                },
+                works: allWorks,
+                total_works: allWorks.length,
+                abstract_stats: totalStats
+            };
+            
+            // Trigger Gemini hook for combined results
+            if (window._geminiHook) {
+                window._geminiHook(combinedData);
+            }
+        }
+
+        window.displayResults = function(data) {
+            const { author, works, total_works, abstract_stats } = data;
+
+            // Author info
+            document.getElementById('authorName').textContent = author.display_name;
+            document.getElementById('worksCount').textContent = author.works_count?.toLocaleString() || '—';
+            document.getElementById('citationsCount').textContent = author.cited_by_count?.toLocaleString() || '—';
+            document.getElementById('authorId').textContent = author.id;
+
+            // ORCID
+            const orcidContainer = document.getElementById('orcidContainer');
+            if (author.orcid) {
+                document.getElementById('authorOrcid').textContent = author.orcid.replace('https://orcid.org/', '');
+                orcidContainer.style.display = 'flex';
+            } else {
+                orcidContainer.style.display = 'none';
+            }
+
+            // Affiliations
+            const affiliationsContainer = document.getElementById('affiliationsContainer');
+            if (author.affiliations && author.affiliations.length > 0) {
+                affiliationsContainer.innerHTML = author.affiliations
+                    .filter(a => a)
+                    .map(a => `<span class="affiliation-tag">${a}</span>`)
+                    .join('');
+                affiliationsContainer.style.display = 'block';
+            } else {
+                affiliationsContainer.style.display = 'none';
+            }
+
+            // Render timeline chart
+            renderTimeline(works);
+
+            displayWorksWithStats(works, abstract_stats || {});
+        }
+
+        // Store chart instance for cleanup
+        let timelineChartInstance = null;
+        
+        function renderTimeline(works) {
+            const timelineSection = document.getElementById('timelineSection');
+            const canvas = document.getElementById('timelineChart');
+            const timelineRange = document.getElementById('timelineRange');
+            
+            // Destroy existing chart if any
+            if (timelineChartInstance) {
+                timelineChartInstance.destroy();
+                timelineChartInstance = null;
+            }
+            
+            // Parse dates and calculate career span
+            const dates = works
+                .map(work => {
+                    if (work.publication_date) {
+                        return { date: work.publication_date, year: work.publication_year };
+                    } else if (work.publication_year) {
+                        return { date: `${work.publication_year}-06`, year: work.publication_year };
+                    }
+                    return null;
+                })
+                .filter(Boolean);
+            
+            if (dates.length === 0) {
+                timelineSection.style.display = 'none';
+                return;
+            }
+            
+            const years = dates.map(d => d.year).filter(Boolean);
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
+            const careerSpan = maxYear - minYear + 1;
+            
+            // Decide granularity: monthly for short careers, yearly for long
+            const useMonths = careerSpan <= 6;
+            
+            let labels = [];
+            let data = [];
+            let rangeText = '';
+            
+            if (useMonths) {
+                // Monthly aggregation
+                const monthCounts = {};
+                dates.forEach(({ date }) => {
+                    const monthKey = date.substring(0, 7); // YYYY-MM
+                    monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+                });
+                
+                const months = Object.keys(monthCounts).sort();
+                if (months.length === 0) {
+                    timelineSection.style.display = 'none';
+                    return;
+                }
+                
+                // Fill gaps between min and max month
+                const parseYearMonth = (ym) => {
+                    const [y, m] = ym.split('-').map(Number);
+                    return new Date(y, m - 1, 1);
+                };
+                const startDate = parseYearMonth(months[0]);
+                const endDate = parseYearMonth(months[months.length - 1]);
+                const current = new Date(startDate);
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                while (current <= endDate) {
+                    const year = current.getFullYear();
+                    const month = current.getMonth();
+                    const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    labels.push(monthNames[month] + " '" + String(year).slice(-2));
+                    data.push(monthCounts[key] || 0);
+                    current.setMonth(current.getMonth() + 1);
+                }
+                
+                rangeText = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()} – ${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+            } else {
+                // Yearly aggregation
+                const yearCounts = {};
+                years.forEach(year => {
+                    yearCounts[year] = (yearCounts[year] || 0) + 1;
+                });
+                
+                for (let y = minYear; y <= maxYear; y++) {
+                    labels.push(String(y));
+                    data.push(yearCounts[y] || 0);
+                }
+                
+                rangeText = `${minYear}–${maxYear}`;
+            }
+            
+            // Update range text
+            timelineRange.textContent = rangeText;
+            
+            // Create Chart.js bar chart
+            const ctx = canvas.getContext('2d');
+            timelineChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: '#0a0a0a',
+                        borderColor: '#0a0a0a',
+                        borderWidth: 0,
+                        borderRadius: 2,
+                        barPercentage: 0.8,
+                        categoryPercentage: 0.9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0a0a0a',
+                            titleFont: { family: "'IBM Plex Mono', monospace", size: 11 },
+                            bodyFont: { family: "'IBM Plex Mono', monospace", size: 11 },
+                            padding: 8,
+                            cornerRadius: 0,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (item) => `${item.raw} publication${item.raw !== 1 ? 's' : ''}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { family: "'IBM Plex Mono', monospace", size: 10 },
+                                color: '#737373',
+                                maxRotation: 45,
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: labels.length > 20 ? 10 : labels.length
+                            },
+                            border: { display: false }
+                        },
+                        y: {
+                            display: false,
+                            beginAtZero: true,
+                            grid: { display: false }
+                        }
+                    },
+                    animation: {
+                        duration: 400,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            timelineSection.style.display = 'block';
+        }
+
+        function displayWorksWithStats(works, stats) {
+            // Stats bar
+            const statsHtml = `
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="source-badge openalex">OA</span>
+                        <strong>${stats.openalex || 0}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span class="source-badge pubmed">PM</span>
+                        <strong>${stats.pubmed || 0}</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span class="source-badge none">—</span>
+                        <strong>${stats.none || 0}</strong>
+                    </div>
+                </div>
+            `;
+
+            // Works count
+            document.getElementById('displayedWorksCount').textContent = 
+                `${works.length.toLocaleString()} items`;
+
+            // Works list
+            const worksList = document.getElementById('worksList');
+            worksList.innerHTML = statsHtml + works.map(work => `
+                <article class="work-card">
+                    <h4 class="work-title">
+                        ${work.doi 
+                            ? `<a href="${work.doi}" target="_blank">${escapeHtml(work.title || 'Untitled')}</a>`
+                            : escapeHtml(work.title || 'Untitled')
+                        }
+                        ${getSourceBadge(work.abstract_source)}
+                    </h4>
+                    <div class="work-meta">
+                        ${work.publication_year ? `<span class="work-year">${work.publication_year}</span>` : ''}
+                        ${work.type ? `<span class="work-type">${work.type.replace('-', ' ')}</span>` : ''}
+                        <span class="work-citations">
+                            ${work.cited_by_count?.toLocaleString() || 0} cit.
+                        </span>
+                        <span style="color: var(--gray-400);">
+                            ${work.openalex_id}
+                        </span>
+                    </div>
+                    ${work.abstract 
+                        ? `<div class="abstract">${escapeHtml(work.abstract)}</div>`
+                        : `<div class="abstract abstract-missing">No abstract available</div>`
+                    }
+                </article>
+            `).join('');
+
+            resultsSection.classList.add('visible');
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    
+    <!-- Gemini Analysis UI -->
+    <script>
+    (function() {
+        'use strict';
+        
+        let geminiReady = false;
+        
+        // Hook into displayResults to auto-store works for Gemini
+        const originalDisplayResults = window.displayResults;
+        window.displayResults = function(data) {
+            if (originalDisplayResults) originalDisplayResults(data);
+            if (data && data.works) {
+                storeWorksForGemini(data.works, data.author?.display_name);
+            }
+        };
+        
+        // Also hook the combined results
+        window._geminiHook = function(data) {
+            if (data && data.works) {
+                storeWorksForGemini(data.works, data.author?.display_name);
+            }
+        };
+        
+        async function storeWorksForGemini(works, authorName) {
+            try {
+                const resp = await fetch('/api/gemini/store', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ works, author_name: authorName })
+                });
+                
+                if (resp.ok) {
+                    const data = await resp.json();
+                    geminiReady = true;
+                    showGeminiSection(data.with_abstracts, authorName);
+                    // Auto-run initial analysis
+                    runInitialAnalysis(data.with_abstracts);
+                }
+            } catch (e) {
+                console.log('Gemini store failed:', e);
+            }
+        }
+        
+        async function runInitialAnalysis(abstractCount) {
+            const responseDiv = document.getElementById('geminiInitialResponse');
+            if (!responseDiv) return;
+            
+            const prompt = `Tell me the story of this researcher's work. Begin with "Overall," followed by a high-level summary of their focus. Then describe their narrative arc — where did they start, what questions drove them, how has their work evolved, and where are they heading now? Be concise but paint a picture. Do NOT cite specific studies or paper titles throughout — synthesize the themes naturally without constant references.`;
+            
+            try {
+                const resp = await fetch('/api/gemini/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: prompt })
+                });
+                
+                const data = await resp.json();
+                
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                // Format response - convert markdown to HTML
+                const formattedAnswer = data.answer
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                
+                responseDiv.innerHTML = `
+                    <div style="background: var(--gray-50); padding: 1.5rem; border-left: 4px solid var(--black);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                            <span style="font-weight: 600;">Research Journey</span>
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.works_analyzed} works</span>
+                        </div>
+                        <div style="color: var(--black); line-height: 1.8; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
+                            <p>${formattedAnswer}</p>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (e) {
+                responseDiv.innerHTML = `
+                    <div style="background: var(--gray-50); border-left: 4px solid var(--black); padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--gray-500);">
+                        Could not load overview: ${escapeHtml(e.message)}
+                    </div>
+                `;
+            }
+        }
+        
+        function showGeminiSection(abstractCount, authorName) {
+            // Remove existing section
+            const existing = document.getElementById('geminiSection');
+            if (existing) existing.remove();
+            
+            const section = document.createElement('section');
+            section.id = 'geminiSection';
+            section.innerHTML = `
+                <div style="background: var(--white); border: 2px solid var(--black); padding: 2rem; margin-top: 2.5rem; position: relative;">
+                    <div style="position: absolute; top: 8px; left: 8px; right: -8px; bottom: -8px; border: 2px solid var(--black); z-index: -1;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--gray-200);">
+                        <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; margin: 0;">Research Profile</h3>
+                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em;">${abstractCount} abstracts</span>
+                    </div>
+                    
+                    <!-- Initial auto-analysis -->
+                    <div id="geminiInitialResponse" style="margin-bottom: 2rem;">
+                        <div style="padding: 1.5rem; background: var(--gray-50); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--gray-500); display: flex; align-items: center; gap: 0.75rem;">
+                            <span class="loader" style="display: inline-block;"></span>
+                            Analyzing research profile...
+                        </div>
+                    </div>
+                    
+                    <!-- Follow-up questions -->
+                    <div style="border-top: 1px solid var(--gray-200); padding-top: 1.5rem;">
+                        <p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;">Ask a follow-up</p>
+                        <div style="display: flex; gap: 1rem; align-items: stretch;">
+                            <div style="flex: 1;">
+                                <input type="text" id="geminiQuestion" placeholder="Methods used? Collaborations? Evolution over time?" 
+                                       style="width: 100%; background: var(--gray-50); border: 1px solid var(--gray-200); padding: 1rem; font-size: 1rem; color: var(--black); font-family: inherit;">
+                            </div>
+                            <button type="button" id="geminiAskBtn" onclick="askGemini()">
+                                Ask
+                            </button>
+                        </div>
+                    </div>
+                    <div id="geminiResponse" style="display: none; margin-top: 1.5rem;"></div>
+                </div>
+            `;
+            
+            // Insert after author card
+            const authorCard = document.getElementById('authorCard');
+            if (authorCard) {
+                authorCard.parentNode.insertBefore(section, authorCard.nextSibling);
+            }
+            
+            // Enter key to submit
+            document.getElementById('geminiQuestion').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') askGemini();
+            });
+        }
+        
+        window.askGemini = async function() {
+            const input = document.getElementById('geminiQuestion');
+            const btn = document.getElementById('geminiAskBtn');
+            const responseDiv = document.getElementById('geminiResponse');
+            const question = input.value.trim();
+            
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader" style="display: inline-block;"></span>';
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = `
+                <div style="padding: 1rem; background: var(--gray-50); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--gray-500);">
+                    Analyzing abstracts...
+                </div>
+            `;
+            
+            try {
+                const resp = await fetch('/api/gemini/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                
+                const data = await resp.json();
+                
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                // Format response - convert markdown to HTML
+                const formattedAnswer = data.answer
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                
+                responseDiv.style.display = 'block';
+                responseDiv.innerHTML = `
+                    <div style="background: var(--gray-50); padding: 1.5rem; border-left: 4px solid var(--black);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                            <span style="font-weight: 600;">Analysis</span>
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.works_analyzed} works</span>
+                        </div>
+                        <div style="color: var(--black); line-height: 1.8; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
+                            <p>${formattedAnswer}</p>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (e) {
+                responseDiv.style.display = 'block';
+                responseDiv.innerHTML = `
+                    <div style="background: var(--gray-50); border-left: 4px solid var(--black); padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;">
+                        Error: ${escapeHtml(e.message)}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-text">Ask</span>';
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

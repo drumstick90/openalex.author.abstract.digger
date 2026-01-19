@@ -1,0 +1,36 @@
+# Caddy reverse proxy configuration
+# Replace YOUR_DOMAIN.com with your actual domain
+# Copy to: /etc/caddy/Caddyfile
+
+YOUR_DOMAIN.com {
+    # Automatic HTTPS via Let's Encrypt
+    
+    # Reverse proxy to Gunicorn
+    reverse_proxy localhost:8000 {
+        # Health checks
+        health_uri /
+        health_interval 30s
+        
+        # Timeouts for slow API responses
+        transport http {
+            read_timeout 120s
+        }
+    }
+    
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    
+    # Compression
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/openalex-digger.log
+        format json
+    }
+}
+
