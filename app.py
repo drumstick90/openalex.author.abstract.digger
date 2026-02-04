@@ -37,7 +37,7 @@ def index():
     return send_from_directory('.', 'index.html')
 
 
-def send_progress(session_id: str, message: str, progress: float = None, phase: str = None):
+def send_progress(session_id: str, message: str, progress: float = None, phase: str = None, total: int = None):
     """Send a progress update to the SSE stream for a session."""
     if session_id in progress_streams:
         data = {'message': message}
@@ -45,6 +45,8 @@ def send_progress(session_id: str, message: str, progress: float = None, phase: 
             data['progress'] = progress
         if phase:
             data['phase'] = phase
+        if total is not None:
+            data['total'] = total
         try:
             progress_streams[session_id].put_nowait(data)
         except queue.Full:
@@ -243,7 +245,7 @@ def fetch_author_works(author: dict, pubmed_fallback: bool = False, session_id: 
     
     logger.info(f"✓ Total works fetched: {len(all_works)}")
     if session_id:
-        send_progress(session_id, f'✓ Total works fetched: {len(all_works)}', 15, 'processing')
+        send_progress(session_id, f'✓ Total works fetched: {len(all_works)}', 15, 'processing', total=len(all_works))
     
     if pubmed_fallback:
         msg = '⚠️ PubMed fallback enabled - this may take a while...'
@@ -254,6 +256,10 @@ def fetch_author_works(author: dict, pubmed_fallback: bool = False, session_id: 
     # Format results with abstract extraction
     results = []
     stats = {'openalex': 0, 'pubmed': 0, 'none': 0}
+    
+    # NEW: Aggregate funding/grant data
+    funders = {}
+    total_grants_found = 0
     
     total = len(all_works)
     for i, work in enumerate(all_works):
@@ -292,6 +298,29 @@ def fetch_author_works(author: dict, pubmed_fallback: bool = False, session_id: 
         else:
             stats['none'] += 1
         
+        # NEW: Extract grant/funding data from this work
+        work_grants = work.get('grants', [])
+        if work_grants:
+            logger.debug(f"💰 Found {len(work_grants)} grant(s) for: {work_title[:40]}...")
+            for grant in work_grants:
+                total_grants_found += 1
+                funder_name = grant.get('funder_display_name') or grant.get('funder', 'Unknown Funder')
+                funder_id = grant.get('funder')  # OpenAlex funder ID
+                award_id = grant.get('award_id')
+                
+                if funder_name not in funders:
+                    funders[funder_name] = {
+                        'funder_id': funder_id,
+                        'count': 0,
+                        'awards': [],
+                        'works': []
+                    }
+                funders[funder_name]['count'] += 1
+                if award_id and award_id not in funders[funder_name]['awards']:
+                    funders[funder_name]['awards'].append(award_id)
+                if work_id not in funders[funder_name]['works']:
+                    funders[funder_name]['works'].append(work_id)
+        
         results.append({
             'openalex_id': work_id,
             'doi': work.get('doi'),
@@ -307,8 +336,32 @@ def fetch_author_works(author: dict, pubmed_fallback: bool = False, session_id: 
     
     stats_msg = f"📊 Abstract stats: OpenAlex={stats['openalex']}, PubMed={stats['pubmed']}, Missing={stats['none']}"
     logger.info(stats_msg)
+    
+    # NEW: Log funding stats
+    if funders:
+        funding_msg = f"💰 Funding stats: {len(funders)} funders, {total_grants_found} grant mentions across {sum(len(f['works']) for f in funders.values())} works"
+        logger.info(funding_msg)
+        logger.info("💰 Top funders:")
+        for funder_name, funder_data in sorted(funders.items(), key=lambda x: -x[1]['count'])[:5]:
+            logger.info(f"   - {funder_name}: {funder_data['count']} mentions, {len(funder_data['awards'])} unique awards")
+    else:
+        logger.info("💰 No funding/grant data found in OpenAlex for this author's works")
+    
     if session_id:
         send_progress(session_id, stats_msg, 100, 'complete')
+    
+    # Build sorted funders list for response
+    funders_list = [
+        {
+            'name': name,
+            'funder_id': data['funder_id'],
+            'mention_count': data['count'],
+            'unique_awards': len(data['awards']),
+            'awards': data['awards'][:10],  # Limit to first 10 award IDs
+            'works_count': len(data['works'])
+        }
+        for name, data in sorted(funders.items(), key=lambda x: -x[1]['count'])
+    ]
     
     return jsonify({
         'author': {
@@ -324,7 +377,13 @@ def fetch_author_works(author: dict, pubmed_fallback: bool = False, session_id: 
         },
         'works': results,
         'total_works': len(results),
-        'abstract_stats': stats  # Include stats in response
+        'abstract_stats': stats,
+        # NEW: Include funding data in response
+        'funding': {
+            'funders': funders_list,
+            'total_mentions': total_grants_found,
+            'works_with_funding': len(set(w for f in funders.values() for w in f['works']))
+        }
     })
 
 

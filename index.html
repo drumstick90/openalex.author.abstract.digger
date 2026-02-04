@@ -306,6 +306,16 @@
             color: var(--gray-500);
         }
 
+        .progress-countdown {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: #22c55e;
+            letter-spacing: 0.05em;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
         .progress-bar-container {
             height: 4px;
             background: var(--gray-200);
@@ -587,6 +597,125 @@
             gap: 0.35rem;
         }
 
+        /* Extraction Progress Panel */
+        .extraction-panel {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .extraction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .extraction-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .extraction-count {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .extraction-progress-bar {
+            height: 6px;
+            background: var(--gray-200);
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+
+        .extraction-progress-fill {
+            height: 100%;
+            background: var(--black);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .extraction-status {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        /* Summary Panel */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .summary-card {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            padding: 1rem;
+        }
+
+        .summary-card-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.35rem 0;
+            font-size: 0.85rem;
+        }
+
+        .summary-item-label {
+            color: var(--gray-600);
+        }
+
+        .summary-item-count {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 500;
+            color: var(--black);
+        }
+
+        .extract-btn {
+            background: var(--black);
+            border: 2px solid var(--black);
+            color: var(--white);
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .extract-btn:hover {
+            background: var(--white);
+            color: var(--black);
+        }
+
+        .extract-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .extract-btn:disabled:hover {
+            background: var(--black);
+            color: var(--white);
+        }
+
         .abstract {
             background: var(--gray-50);
             padding: 1.25rem;
@@ -837,6 +966,126 @@
             letter-spacing: 0.1em;
         }
 
+        /* Experimental Panels */
+        .experimental-panels {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .panel-card {
+            background: var(--white);
+            border: 2px solid var(--black);
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .panel-card::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: -6px;
+            bottom: -6px;
+            border: 2px solid var(--gray-300);
+            z-index: -1;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .panel-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--white);
+            background: var(--gray-400);
+            padding: 0.15rem 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .panel-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .panel-subtitle {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--gray-500);
+        }
+
+        .funder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .funder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+        }
+
+        .funder-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .funder-stats {
+            display: flex;
+            gap: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--gray-500);
+        }
+
+        .funder-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .funder-stat strong {
+            color: var(--black);
+            font-size: 0.85rem;
+        }
+
+        .funding-bar {
+            height: 4px;
+            background: var(--gray-200);
+            margin-top: 0.5rem;
+        }
+
+        .funding-bar-fill {
+            height: 100%;
+            background: var(--black);
+            transition: width 0.3s ease;
+        }
+
+        .no-funding-msg {
+            padding: 1.5rem;
+            background: var(--gray-50);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            text-align: center;
+        }
+
         footer a {
             color: var(--black);
             text-decoration: none;
@@ -963,6 +1212,8 @@
                 </div>
                 <!-- Live status line -->
                 <div class="progress-live" id="progressLive"></div>
+                <!-- Countdown timer -->
+                <div class="progress-countdown" id="progressCountdown"></div>
             </div>
         </section>
 
@@ -1223,9 +1474,45 @@
         const progressStatus = document.getElementById('progressStatus');
         const progressCount = document.getElementById('progressCount');
         const progressLive = document.getElementById('progressLive');
+        const progressCountdown = document.getElementById('progressCountdown');
 
         // Cached author work counts from disambiguation
         let authorWorkCounts = {};
+        
+        // Countdown timer state
+        let countdownInterval = null;
+        let countdownRemaining = 0;
+
+        function formatCountdown(totalSeconds) {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = Math.floor(totalSeconds % 60);
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function startCountdown(totalSeconds) {
+            stopCountdown(); // Clear any existing
+            countdownRemaining = totalSeconds;
+            progressCountdown.textContent = formatCountdown(countdownRemaining);
+            progressCountdown.style.display = 'block';
+            
+            countdownInterval = setInterval(() => {
+                countdownRemaining--;
+                if (countdownRemaining <= 0) {
+                    progressCountdown.textContent = '00:00';
+                    stopCountdown();
+                } else {
+                    progressCountdown.textContent = formatCountdown(countdownRemaining);
+                }
+            }, 1000);
+        }
+
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            progressCountdown.style.display = 'none';
+        }
         
         // Current SSE connection
         let currentEventSource = null;
@@ -1262,6 +1549,8 @@
                 currentEventSource.close();
                 currentEventSource = null;
             }
+            // Stop countdown timer
+            stopCountdown();
         }
         
         function clearProgressLog() {
@@ -1298,6 +1587,11 @@
                         if (data.phase === 'connected') {
                             safeResolve();
                         }
+                    
+                    // Start countdown when we receive total works count (1s per work)
+                    if (data.total && !countdownInterval) {
+                        startCountdown(data.total);
+                    }
                     
                     // Update progress bar if percentage provided
                     if (data.progress !== undefined) {
@@ -1375,6 +1669,9 @@
                 formatEta(estimatedSeconds),
                 0
             );
+            
+            // Start live countdown (1 second per abstract)
+            startCountdown(totalWorks);
 
             const startTime = Date.now();
             const results = [];
@@ -1489,6 +1786,33 @@
                     totalStats.none++;
                 }
             });
+            
+            // Aggregate funding data from all results
+            const fundersMap = new Map();
+            let totalFundingMentions = 0;
+            const worksWithFundingSet = new Set();
+            
+            resultsArray.forEach(r => {
+                if (r.funding && r.funding.funders) {
+                    r.funding.funders.forEach(funder => {
+                        const existing = fundersMap.get(funder.name);
+                        if (existing) {
+                            existing.mention_count += funder.mention_count;
+                            existing.works_count += funder.works_count;
+                            existing.unique_awards += funder.unique_awards;
+                        } else {
+                            fundersMap.set(funder.name, { ...funder });
+                        }
+                    });
+                    totalFundingMentions += r.funding.total_mentions || 0;
+                }
+            });
+            
+            const combinedFunding = {
+                funders: Array.from(fundersMap.values()).sort((a, b) => b.mention_count - a.mention_count),
+                total_mentions: totalFundingMentions,
+                works_with_funding: worksWithFundingSet.size || Math.min(totalFundingMentions, allWorks.length)
+            };
 
             // Multiple authors header
             document.getElementById('authorName').textContent = authors.map(a => a.display_name).join(' + ');
@@ -1530,7 +1854,8 @@
                 },
                 works: allWorks,
                 total_works: allWorks.length,
-                abstract_stats: totalStats
+                abstract_stats: totalStats,
+                funding: combinedFunding
             };
             
             // Trigger Gemini hook for combined results
@@ -1760,7 +2085,7 @@
             // Works list
             const worksList = document.getElementById('worksList');
             worksList.innerHTML = statsHtml + works.map(work => `
-                <article class="work-card">
+                <article class="work-card" id="work-${work.openalex_id}" data-id="${work.openalex_id}">
                     <h4 class="work-title">
                         ${work.doi 
                             ? `<a href="${work.doi}" target="_blank">${escapeHtml(work.title || 'Untitled')}</a>`
@@ -1799,41 +2124,131 @@
         }
     </script>
     
-    <!-- Gemini Analysis UI -->
+    <!-- Gemini Analysis UI with Map-Reduce Extraction -->
     <script>
     (function() {
         'use strict';
         
         let geminiReady = false;
+        let extractionComplete = false;
+        let currentAbstractCount = 0;
         
-        // Hook into displayResults to auto-store works for Gemini
+        // Hook into displayResults to auto-store works for Gemini AND show funding
         const originalDisplayResults = window.displayResults;
         window.displayResults = function(data) {
             if (originalDisplayResults) originalDisplayResults(data);
             if (data && data.works) {
-                storeWorksForGemini(data.works, data.author?.display_name);
+                storeWorksForGemini(data.works, data.author?.display_name, data.author?.id);
+            }
+            // Show funding panel if data available
+            if (data && data.funding) {
+                showFundingPanel(data.funding, data.total_works);
             }
         };
         
         // Also hook the combined results
         window._geminiHook = function(data) {
             if (data && data.works) {
-                storeWorksForGemini(data.works, data.author?.display_name);
+                storeWorksForGemini(data.works, data.author?.display_name, data.author?.id);
+            }
+            if (data && data.funding) {
+                showFundingPanel(data.funding, data.total_works);
             }
         };
         
-        async function storeWorksForGemini(works, authorName) {
+        // Funding Landscape Panel
+        function showFundingPanel(funding, totalWorks) {
+            const existing = document.getElementById('fundingPanel');
+            if (existing) existing.remove();
+            
+            const panel = document.createElement('section');
+            panel.id = 'fundingPanel';
+            panel.className = 'panel-card';
+            panel.style.marginTop = '2rem';
+            
+            const funders = funding.funders || [];
+            const totalMentions = funding.total_mentions || 0;
+            const worksWithFunding = funding.works_with_funding || 0;
+            
+            if (funders.length === 0) {
+                panel.innerHTML = `
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-label">Experimental</span>
+                            <h4 class="panel-title">Funding Landscape</h4>
+                        </div>
+                    </div>
+                    <div class="no-funding-msg">
+                        No funding/grant data available in OpenAlex for this author's works.
+                        <br><span style="font-size: 0.7rem; color: var(--gray-400);">Grant data coverage varies by field and publisher.</span>
+                    </div>
+                `;
+            } else {
+                const maxMentions = Math.max(...funders.map(f => f.mention_count));
+                
+                panel.innerHTML = `
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-label">Experimental</span>
+                            <h4 class="panel-title">Funding Landscape</h4>
+                        </div>
+                        <div class="panel-subtitle">
+                            ${worksWithFunding} of ${totalWorks} works · ${funders.length} funder${funders.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    <div class="funder-list">
+                        ${funders.slice(0, 8).map(funder => `
+                            <div class="funder-item">
+                                <div style="flex: 1;">
+                                    <div class="funder-name">${escapeHtml(funder.name)}</div>
+                                    <div class="funding-bar">
+                                        <div class="funding-bar-fill" style="width: ${(funder.mention_count / maxMentions * 100).toFixed(0)}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="funder-stats">
+                                    <div class="funder-stat">
+                                        <strong>${funder.works_count}</strong> works
+                                    </div>
+                                    <div class="funder-stat">
+                                        <strong>${funder.unique_awards}</strong> awards
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${funders.length > 8 ? `
+                            <div style="text-align: center; padding: 0.75rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-400);">
+                                + ${funders.length - 8} more funder${funders.length - 8 !== 1 ? 's' : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            const geminiSection = document.getElementById('geminiSection');
+            const authorCard = document.getElementById('authorCard');
+            
+            if (geminiSection) {
+                geminiSection.parentNode.insertBefore(panel, geminiSection.nextSibling);
+            } else if (authorCard) {
+                authorCard.parentNode.insertBefore(panel, authorCard.nextSibling);
+            }
+        }
+        
+        async function storeWorksForGemini(works, authorName, authorId) {
             try {
                 const resp = await fetch('/api/gemini/store', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ works, author_name: authorName })
+                    body: JSON.stringify({ works, author_name: authorName, author_id: authorId })
                 });
                 
                 if (resp.ok) {
                     const data = await resp.json();
                     geminiReady = true;
-                    showGeminiSection(data.with_abstracts, authorName);
+                    currentAbstractCount = data.with_abstracts;
+                    extractionComplete = data.has_cached_extracts;
+                    showGeminiSection(data.with_abstracts, authorName, data.has_cached_extracts);
+                    
                     // Auto-run initial analysis
                     runInitialAnalysis(data.with_abstracts);
                 }
@@ -1861,18 +2276,21 @@
                     throw new Error(data.error || 'Analysis failed');
                 }
                 
-                // Format response - convert markdown to HTML
                 const formattedAnswer = data.answer
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/g, '<em>$1</em>')
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>');
                 
+                const sourceNote = data.source === 'cached_extracts' 
+                    ? `<span style="color: #22c55e;">✓ using cached extracts</span>` 
+                    : `<span style="color: var(--gray-400);">direct analysis</span>`;
+                
                 responseDiv.innerHTML = `
                     <div style="background: var(--gray-50); padding: 1.5rem; border-left: 4px solid var(--black);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
                             <span style="font-weight: 600;">Research Journey</span>
-                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.works_analyzed} works</span>
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.extracts_used || data.works_analyzed} works · ${sourceNote}</span>
                         </div>
                         <div style="color: var(--black); line-height: 1.8; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
                             <p>${formattedAnswer}</p>
@@ -1889,19 +2307,54 @@
             }
         }
         
-        function showGeminiSection(abstractCount, authorName) {
-            // Remove existing section
+        function showGeminiSection(abstractCount, authorName, hasCachedExtracts) {
             const existing = document.getElementById('geminiSection');
             if (existing) existing.remove();
             
             const section = document.createElement('section');
             section.id = 'geminiSection';
+            
+            const extractButtonText = hasCachedExtracts 
+                ? '✓ Extracts Cached' 
+                : 'Extract All Insights';
+            const extractButtonDisabled = hasCachedExtracts ? 'disabled' : '';
+            
             section.innerHTML = `
                 <div style="background: var(--white); border: 2px solid var(--black); padding: 2rem; margin-top: 2.5rem; position: relative;">
                     <div style="position: absolute; top: 8px; left: 8px; right: -8px; bottom: -8px; border: 2px solid var(--black); z-index: -1;"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--gray-200);">
                         <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; margin: 0;">Research Profile</h3>
                         <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em;">${abstractCount} abstracts</span>
+                    </div>
+                    
+                    <!-- Extraction Section -->
+                    <div id="extractionSection" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Deep Analysis</p>
+                                <p style="font-size: 0.85rem; color: var(--gray-600); max-width: 400px;">
+                                    Extract themes, methodologies, and findings from every abstract. Takes ~${Math.ceil(abstractCount / 50)} min. Enables faster follow-up queries.
+                                </p>
+                            </div>
+                            <button type="button" id="extractBtn" class="extract-btn" onclick="startExtraction()" ${extractButtonDisabled}>
+                                ${extractButtonText}
+                            </button>
+                        </div>
+                        
+                        <!-- Extraction Progress (hidden initially) -->
+                        <div id="extractionProgress" class="extraction-panel" style="display: none;">
+                            <div class="extraction-header">
+                                <span class="extraction-title">Extracting insights...</span>
+                                <span class="extraction-count" id="extractionCount">0/${abstractCount}</span>
+                            </div>
+                            <div class="extraction-progress-bar">
+                                <div class="extraction-progress-fill" id="extractionProgressFill"></div>
+                            </div>
+                            <div class="extraction-status" id="extractionStatus">Starting...</div>
+                        </div>
+                        
+                        <!-- Summary Panel (hidden initially) -->
+                        <div id="extractionSummary" style="display: none;"></div>
                     </div>
                     
                     <!-- Initial auto-analysis -->
@@ -1929,16 +2382,234 @@
                 </div>
             `;
             
-            // Insert after author card
             const authorCard = document.getElementById('authorCard');
             if (authorCard) {
                 authorCard.parentNode.insertBefore(section, authorCard.nextSibling);
             }
             
-            // Enter key to submit
             document.getElementById('geminiQuestion').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') askGemini();
             });
+            
+            // If we have cached extracts, load and show summary
+            if (hasCachedExtracts) {
+                loadAndShowSummary();
+            }
+        }
+        
+        async function loadAndShowSummary() {
+            try {
+                const resp = await fetch('/api/gemini/extracts');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    showExtractionSummary(data.summary, data.successful);
+                }
+            } catch (e) {
+                console.log('Could not load cached summary:', e);
+            }
+        }
+        
+        window.startExtraction = async function() {
+            const btn = document.getElementById('extractBtn');
+            const progressPanel = document.getElementById('extractionProgress');
+            const progressFill = document.getElementById('extractionProgressFill');
+            const countEl = document.getElementById('extractionCount');
+            const statusEl = document.getElementById('extractionStatus');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader" style="width: 14px; height: 14px; border-width: 2px; display: inline-block;"></span> Starting...';
+            progressPanel.style.display = 'block';
+            
+            const sessionId = 'extract_' + Date.now();
+            
+            // Start SSE connection for progress
+            const eventSource = new EventSource(`/api/gemini/extract-progress/${sessionId}`);
+            
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.phase === 'connected') {
+                        console.log('SSE connected for extraction');
+                    } else if (data.phase === 'complete') {
+                        eventSource.close();
+                        extractionComplete = true;
+                        btn.innerHTML = '✓ Extraction Complete';
+                        progressPanel.style.display = 'none';
+                        
+                        // Load and show summary
+                        loadAndShowSummary();
+                        
+                        // Re-run initial analysis with cached extracts
+                        runInitialAnalysis(currentAbstractCount);
+                        
+                    } else if (data.phase === 'error') {
+                        eventSource.close();
+                        btn.disabled = false;
+                        btn.innerHTML = 'Extract All Insights';
+                        statusEl.textContent = `Error: ${data.error}`;
+                        
+                    } else if (data.completed !== undefined) {
+                        const pct = data.progress || 0;
+                        progressFill.style.width = `${pct}%`;
+                        countEl.textContent = `${data.completed}/${data.total}`;
+                        statusEl.textContent = data.message || 'Processing...';
+                    }
+                } catch (e) {
+                    console.error('Error parsing SSE:', e);
+                }
+            };
+            
+            eventSource.onerror = () => {
+                eventSource.close();
+            };
+            
+            // Start the extraction
+            try {
+                const resp = await fetch('/api/gemini/extract-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, max_workers: 5, rpm: 50 })
+                });
+                
+                const data = await resp.json();
+                
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Extraction failed to start');
+                }
+                
+                btn.innerHTML = '<span class="loader" style="width: 14px; height: 14px; border-width: 2px; display: inline-block;"></span> Extracting...';
+                
+            } catch (e) {
+                eventSource.close();
+                btn.disabled = false;
+                btn.innerHTML = 'Extract All Insights';
+                progressPanel.style.display = 'none';
+                alert('Extraction failed: ' + e.message);
+            }
+        };
+        
+        function showExtractionSummary(summary, totalExtracted) {
+            const summaryDiv = document.getElementById('extractionSummary');
+            if (!summaryDiv || !summary) return;
+            
+            const studyTypes = summary.study_types || {};
+            const topKeywords = summary.top_keywords || [];
+            const evidenceLevels = summary.evidence_levels || {};
+            const novelty = summary.novelty || {};
+            const topDrugs = summary.top_drugs || [];
+            const topConditions = summary.top_conditions || [];
+            const topBiomarkers = summary.top_biomarkers || [];
+            const withLimitations = summary.with_limitations || 0;
+            const withClinicalImplications = summary.with_clinical_implications || 0;
+            
+            // Evidence level labels
+            const evidenceLabels = {
+                1: 'Meta-analysis/SR',
+                2: 'RCT',
+                3: 'Cohort/Case-ctrl',
+                4: 'Case series',
+                5: 'Expert/Theory'
+            };
+            
+            summaryDiv.style.display = 'block';
+            summaryDiv.innerHTML = `
+                <div style="margin-top: 1.5rem; padding: 1.5rem; background: var(--gray-50); border: 1px solid var(--gray-200);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em;">Extraction Summary</span>
+                        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #22c55e;">✓ ${totalExtracted} papers analyzed</span>
+                    </div>
+                    
+                    <!-- Row 1: Evidence Levels + Novelty -->
+                    <div class="summary-grid" style="margin-bottom: 1rem;">
+                        <div class="summary-card">
+                            <div class="summary-card-title">Evidence Levels</div>
+                            ${Object.entries(evidenceLevels).filter(([_, count]) => count > 0).map(([level, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${evidenceLabels[level] || 'Level ' + level}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('') || '<div class="summary-item"><span class="summary-item-label" style="color: var(--gray-400);">No data</span></div>'}
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card-title">Research Novelty</div>
+                            ${Object.entries(novelty).slice(0, 4).map(([type, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(type)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('') || '<div class="summary-item"><span class="summary-item-label" style="color: var(--gray-400);">No data</span></div>'}
+                        </div>
+                    </div>
+                    
+                    <!-- Row 2: Study Types + Keywords -->
+                    <div class="summary-grid" style="margin-bottom: 1rem;">
+                        <div class="summary-card">
+                            <div class="summary-card-title">Study Types</div>
+                            ${Object.entries(studyTypes).slice(0, 5).map(([type, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(type)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card-title">Top Keywords</div>
+                            ${topKeywords.slice(0, 5).map(([kw, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(kw)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Row 3: Entities (Drugs, Conditions, Biomarkers) -->
+                    ${(topDrugs.length > 0 || topConditions.length > 0 || topBiomarkers.length > 0) ? `
+                    <div class="summary-grid" style="margin-bottom: 1rem;">
+                        ${topDrugs.length > 0 ? `
+                        <div class="summary-card">
+                            <div class="summary-card-title">Drugs/Compounds</div>
+                            ${topDrugs.slice(0, 4).map(([drug, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(drug)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        ${topConditions.length > 0 ? `
+                        <div class="summary-card">
+                            <div class="summary-card-title">Conditions</div>
+                            ${topConditions.slice(0, 4).map(([cond, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(cond)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        ${topBiomarkers.length > 0 ? `
+                        <div class="summary-card">
+                            <div class="summary-card-title">Biomarkers</div>
+                            ${topBiomarkers.slice(0, 4).map(([bio, count]) => `
+                                <div class="summary-item">
+                                    <span class="summary-item-label">${escapeHtml(bio)}</span>
+                                    <span class="summary-item-count">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Meta stats row -->
+                    <div style="display: flex; gap: 2rem; padding-top: 1rem; border-top: 1px solid var(--gray-200); font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--gray-500);">
+                        <span><strong style="color: var(--black);">${withLimitations}</strong> report limitations</span>
+                        <span><strong style="color: var(--black);">${withClinicalImplications}</strong> have clinical implications</span>
+                    </div>
+                </div>
+            `;
         }
         
         window.askGemini = async function() {
@@ -1957,12 +2628,15 @@
             responseDiv.style.display = 'block';
             responseDiv.innerHTML = `
                 <div style="padding: 1rem; background: var(--gray-50); font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--gray-500);">
-                    Analyzing abstracts...
+                    ${extractionComplete ? 'Querying cached extracts...' : 'Analyzing abstracts...'}
                 </div>
             `;
             
             try {
-                const resp = await fetch('/api/gemini/analyze', {
+                // Use synthesize endpoint if extraction is complete, otherwise analyze
+                const endpoint = extractionComplete ? '/api/gemini/synthesize' : '/api/gemini/analyze';
+                
+                const resp = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question })
@@ -1974,19 +2648,21 @@
                     throw new Error(data.error || 'Analysis failed');
                 }
                 
-                // Format response - convert markdown to HTML
                 const formattedAnswer = data.answer
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.*?)\*/g, '<em>$1</em>')
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>');
                 
-                responseDiv.style.display = 'block';
+                const sourceNote = extractionComplete 
+                    ? `<span style="color: #22c55e;">✓ from cached extracts</span>` 
+                    : `<span style="color: var(--gray-400);">direct analysis</span>`;
+                
                 responseDiv.innerHTML = `
                     <div style="background: var(--gray-50); padding: 1.5rem; border-left: 4px solid var(--black);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
                             <span style="font-weight: 600;">Analysis</span>
-                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.works_analyzed} works</span>
+                            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.extracts_used || data.works_analyzed} works · ${sourceNote}</span>
                         </div>
                         <div style="color: var(--black); line-height: 1.8; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
                             <p>${formattedAnswer}</p>
@@ -1995,7 +2671,6 @@
                 `;
                 
             } catch (e) {
-                responseDiv.style.display = 'block';
                 responseDiv.innerHTML = `
                     <div style="background: var(--gray-50); border-left: 4px solid var(--black); padding: 1rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;">
                         Error: ${escapeHtml(e.message)}
