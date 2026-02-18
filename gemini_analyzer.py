@@ -7,10 +7,9 @@ Stage 2 (Synthesize): Query the cached extracts for insights
 
 import json
 import os
-import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, Callable
+from typing import Callable
 
 
 class GeminiAnalyzer:
@@ -491,92 +490,3 @@ Please provide a comprehensive analysis based on ALL the abstracts above."""
             parts.append("")
         
         return "\n".join(parts)
-
-
-# ============================================================================
-# Global State Management
-# ============================================================================
-
-_stored_works: list[dict] = []
-_author_name: Optional[str] = None
-_author_id: Optional[str] = None
-_cached_extracts: list[dict] = []
-_extraction_in_progress: bool = False
-
-
-def store_works(works: list[dict], author_name: str = None, author_id: str = None):
-    """Store works for later analysis."""
-    global _stored_works, _author_name, _author_id, _cached_extracts
-    _stored_works = works
-    _author_name = author_name
-    _author_id = author_id
-    _cached_extracts = []  # Clear cache when new works are stored
-    print(f"📦 Stored {len(works)} works for {author_name or 'unknown author'}")
-
-
-def get_stored_works() -> tuple[list[dict], Optional[str]]:
-    """Get stored works and author name."""
-    return _stored_works, _author_name
-
-
-def get_cached_extracts() -> list[dict]:
-    """Get cached extracts."""
-    return _cached_extracts
-
-
-def set_cached_extracts(extracts: list[dict]):
-    """Set cached extracts."""
-    global _cached_extracts
-    _cached_extracts = extracts
-    print(f"💾 Cached {len(extracts)} extracts")
-
-
-def is_extraction_in_progress() -> bool:
-    """Check if extraction is currently running."""
-    return _extraction_in_progress
-
-
-def set_extraction_in_progress(value: bool):
-    """Set extraction in progress flag."""
-    global _extraction_in_progress
-    _extraction_in_progress = value
-
-
-def clear_stored():
-    """Clear stored works and cache."""
-    global _stored_works, _author_name, _author_id, _cached_extracts
-    _stored_works = []
-    _author_name = None
-    _author_id = None
-    _cached_extracts = []
-
-
-def get_extraction_cache_path(author_id: str = None) -> str:
-    """Get path to temp file for extraction cache."""
-    aid = author_id or _author_id or "unknown"
-    return os.path.join(tempfile.gettempdir(), f"openalex_extracts_{aid}.json")
-
-
-def save_extracts_to_file(extracts: list[dict], author_id: str = None):
-    """Save extracts to temp file."""
-    path = get_extraction_cache_path(author_id)
-    with open(path, 'w') as f:
-        json.dump({
-            'author_id': author_id or _author_id,
-            'author_name': _author_name,
-            'extracts': extracts,
-            'count': len(extracts)
-        }, f)
-    print(f"💾 Saved {len(extracts)} extracts to {path}")
-    return path
-
-
-def load_extracts_from_file(author_id: str = None) -> list[dict]:
-    """Load extracts from temp file if it exists."""
-    path = get_extraction_cache_path(author_id)
-    try:
-        with open(path, 'r') as f:
-            data = json.load(f)
-            return data.get('extracts', [])
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []

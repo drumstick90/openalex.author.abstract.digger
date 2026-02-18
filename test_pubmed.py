@@ -1,6 +1,6 @@
 """
 Quick test script for PubMed fallback.
-Run with: python test_pubmed.py
+Run with: python3.11 test_pubmed.py
 """
 
 from abstract_extractor import (

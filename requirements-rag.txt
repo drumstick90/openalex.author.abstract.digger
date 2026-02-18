@@ -1,18 +1,9 @@
 # RAG-specific dependencies
-# Install with: pip install -r requirements-rag.txt
+# Requires Python 3.11. Install with: pip install -r requirements-rag.txt
 
 # Base requirements
 -r requirements.txt
 
-# Vector database (ephemeral in-memory)
-chromadb>=0.4
-
-# Embedding API clients
-openai>=2.0
-
-# Gemini for deep analysis (full context)
+# Gemini for deep analysis
 google-generativeai>=0.5
-
-# Optional: Cohere support
-# cohere>=4.0
 

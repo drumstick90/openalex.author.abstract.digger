@@ -13,8 +13,8 @@ import queue
 import threading
 from flask import Blueprint, request, jsonify, Response
 
-from gemini_analyzer import (
-    GeminiAnalyzer,
+from gemini_analyzer import GeminiAnalyzer
+from gemini_store import (
     store_works,
     get_stored_works,
     get_cached_extracts,
@@ -23,7 +23,7 @@ from gemini_analyzer import (
     set_extraction_in_progress,
     clear_stored,
     save_extracts_to_file,
-    load_extracts_from_file
+    load_extracts_from_file,
 )
 
 

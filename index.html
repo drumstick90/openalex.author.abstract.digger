@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biomedical Abstract Explorer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0a'/><text x='16' y='22' font-size='16' fill='%23fafafa' text-anchor='middle' font-family='sans-serif'>A</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -520,6 +521,34 @@
             font-weight: 600;
         }
 
+        .works-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sort-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .sort-select {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid var(--gray-300);
+            background: var(--white);
+            color: var(--black);
+            cursor: pointer;
+        }
+
+        .sort-select:hover {
+            border-color: var(--black);
+        }
+
         .works-count {
             font-family: 'IBM Plex Mono', monospace;
             color: var(--gray-500);
@@ -714,6 +743,22 @@
         .extract-btn:disabled:hover {
             background: var(--black);
             color: var(--white);
+        }
+
+        .preset-prompt-btn {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--gray-300);
+            background: var(--white);
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-prompt-btn:hover {
+            border-color: var(--black);
+            color: var(--black);
         }
 
         .abstract {
@@ -1146,7 +1191,7 @@
         </div>
 
         <section class="search-section">
-            <form id="searchForm">
+            <form id="searchForm" novalidate>
                 <div class="form-group full-width">
                     <label for="identifier">Author Name or ID</label>
                     <input 
@@ -1254,7 +1299,18 @@
 
             <div class="works-header">
                 <h3 class="works-title">Works</h3>
-                <span class="works-count" id="displayedWorksCount"></span>
+                <div class="works-header-right">
+                    <label for="worksSort" class="sort-label">Sort</label>
+                    <select id="worksSort" class="sort-select" title="Sort works">
+                        <option value="year-desc">Year ↓</option>
+                        <option value="year-asc">Year ↑</option>
+                        <option value="title-asc">Title A–Z</option>
+                        <option value="title-desc">Title Z–A</option>
+                        <option value="citations-desc">Citations ↓</option>
+                        <option value="citations-asc">Citations ↑</option>
+                    </select>
+                    <span class="works-count" id="displayedWorksCount"></span>
+                </div>
             </div>
 
             <div class="works-list" id="worksList"></div>
@@ -1897,7 +1953,45 @@
             // Render timeline chart
             renderTimeline(works);
 
-            displayWorksWithStats(works, abstract_stats || {});
+            // Store for sorting and render
+            currentWorksData = { works: [...works], stats: abstract_stats || {} };
+            setupWorksSort();
+        }
+
+        let currentWorksData = { works: [], stats: {} };
+
+        function setupWorksSort() {
+            const sortEl = document.getElementById('worksSort');
+            if (!sortEl) return;
+            sortEl.onchange = () => applyWorksSort(sortEl.value);
+            applyWorksSort(sortEl.value);
+        }
+
+        function applyWorksSort(sortKey) {
+            const { works, stats } = currentWorksData;
+            if (!works.length) return;
+            const sorted = [...works];
+            switch (sortKey) {
+                case 'year-desc':
+                    sorted.sort((a, b) => (b.publication_year || 0) - (a.publication_year || 0));
+                    break;
+                case 'year-asc':
+                    sorted.sort((a, b) => (a.publication_year || 0) - (b.publication_year || 0));
+                    break;
+                case 'title-asc':
+                    sorted.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+                    break;
+                case 'title-desc':
+                    sorted.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
+                    break;
+                case 'citations-desc':
+                    sorted.sort((a, b) => (b.cited_by_count || 0) - (a.cited_by_count || 0));
+                    break;
+                case 'citations-asc':
+                    sorted.sort((a, b) => (a.cited_by_count || 0) - (b.cited_by_count || 0));
+                    break;
+            }
+            displayWorksWithStats(sorted, stats);
         }
 
         // Store chart instance for cleanup
@@ -2132,6 +2226,28 @@
         let geminiReady = false;
         let extractionComplete = false;
         let currentAbstractCount = 0;
+
+        // Cost estimator for Gemini extraction
+        // Extraction: ~800 input tokens (prompt+abstract) + ~400 output tokens (JSON) per paper
+        // Synthesis: ~40 tokens/extract context + 500 overhead input + 800 output tokens
+        // Pricing: Gemini 2.0 Flash $0.10/1M input, $0.40/1M output (approximate, verify at ai.google.dev/pricing)
+        function estimateExtractionCost(abstractCount) {
+            if (!abstractCount || abstractCount <= 0) return null;
+            const extractIn  = abstractCount * 800;
+            const extractOut = abstractCount * 400;
+            const synthIn    = abstractCount * 40 + 500;
+            const synthOut   = 800;
+            const totalIn    = extractIn + synthIn;
+            const totalOut   = extractOut + synthOut;
+            const usd = (totalIn / 1e6) * 0.10 + (totalOut / 1e6) * 0.40;
+            const label = usd < 0.005
+                ? '< $0.01'
+                : usd < 0.10
+                    ? `~$${usd.toFixed(3)}`
+                    : `~$${usd.toFixed(2)}`;
+            const kTokens = Math.round((totalIn + totalOut) / 1000);
+            return { label, usd, kTokens };
+        }
         
         // Hook into displayResults to auto-store works for Gemini AND show funding
         const originalDisplayResults = window.displayResults;
@@ -2261,7 +2377,7 @@
             const responseDiv = document.getElementById('geminiInitialResponse');
             if (!responseDiv) return;
             
-            const prompt = `Tell me the story of this researcher's work. Begin with "Overall," followed by a high-level summary of their focus. Then describe their narrative arc — where did they start, what questions drove them, how has their work evolved, and where are they heading now? Be concise but paint a picture. Do NOT cite specific studies or paper titles throughout — synthesize the themes naturally without constant references.`;
+            const prompt = PRESET_PROMPTS.critica;
             
             try {
                 const resp = await fetch('/api/gemini/analyze', {
@@ -2289,7 +2405,7 @@
                 responseDiv.innerHTML = `
                     <div style="background: var(--gray-50); padding: 1.5rem; border-left: 4px solid var(--black);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--gray-200);">
-                            <span style="font-weight: 600;">Research Journey</span>
+                            <span style="font-weight: 600;">Analisi critica completa</span>
                             <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em;">${data.model} · ${data.extracts_used || data.works_analyzed} works · ${sourceNote}</span>
                         </div>
                         <div style="color: var(--black); line-height: 1.8; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
@@ -2332,9 +2448,10 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                             <div>
                                 <p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">Deep Analysis</p>
-                                <p style="font-size: 0.85rem; color: var(--gray-600); max-width: 400px;">
-                                    Extract themes, methodologies, and findings from every abstract. Takes ~${Math.ceil(abstractCount / 50)} min. Enables faster follow-up queries.
+                                <p style="font-size: 0.85rem; color: var(--gray-600); max-width: 520px; line-height: 1.5;">
+                                    Runs a map-reduce pipeline: each abstract is sent to Gemini Flash with a structured prompt to extract JSON (theme, methodology, finding, PICO, evidence level, drugs/conditions/biomarkers). Extracts are cached in memory and on disk; follow-up questions then query this compact cache instead of re-processing full text. Parallelized with rate limiting (~50/min). Est. ~${Math.ceil(abstractCount / 50)} min.
                                 </p>
+                                ${(() => { const est = estimateExtractionCost(abstractCount); return est ? `<p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-400); margin-top: 0.4rem; letter-spacing: 0.04em;">est. api cost ${est.label} &nbsp;·&nbsp; ~${est.kTokens}k tokens &nbsp;·&nbsp; gemini flash</p>` : ''; })()}
                             </div>
                             <button type="button" id="extractBtn" class="extract-btn" onclick="startExtraction()" ${extractButtonDisabled}>
                                 ${extractButtonText}
@@ -2376,6 +2493,9 @@
                             <button type="button" id="geminiAskBtn" onclick="askGemini()">
                                 Ask
                             </button>
+                        </div>
+                        <div style="margin-top: 0.75rem;">
+                            <button type="button" class="preset-prompt-btn" onclick="applyPresetPrompt('critica')" title="Analisi critica completa: evoluzione, scala, persistenza, posizionamento, lacune">Analisi critica completa</button>
                         </div>
                     </div>
                     <div id="geminiResponse" style="display: none; margin-top: 1.5rem;"></div>
@@ -2612,6 +2732,29 @@
             `;
         }
         
+        const PRESET_PROMPTS = {
+            critica: `Analizza il corpus di abstract allegato per ricostruire l'evoluzione del lavoro del ricercatore/campo. Produci una sintesi critica basata esclusivamente sui dati testuali, seguendo questi punti:
+
+Evoluzione Tematica e Concettuale: Identifica il nucleo centrale della ricerca e come si è spostato nel tempo. Distingui tra l'accumulo incrementale di dati e i momenti di reale cambio di direzione (pivot) o introduzione di nuovi paradigmi.
+
+Rapporto tra Scala e Robustezza: Esamina come è cambiato il rapporto tra la dimensione dei campioni (N) e la forza delle conclusioni. L'aumento della massa di dati ha prodotto una maggiore chiarezza interpretativa o ha generato una complessità che frammenta i risultati?
+
+Persistenza e Attrito: Identifica quali concetti o metodologie rimangono invariati per tutto il percorso (stabilità) e quali sono stati progressivamente abbandonati o sostituiti. Specifica se l'abbandono sembra dovuto a un superamento scientifico o all'adozione di nuovi standard tecnologici.
+
+Posizionamento Scientifico: Determina se la traiettoria segue il "mainstream" consolidato del settore o se presenta segnali di deviazione (outlier) volti a esplorare percorsi non convenzionali.
+
+Lacune e Fallimenti: What was their failure if any? Individua limiti dichiarati, contraddizioni tra lavori iniziali e successivi, ipotesi non verificate o abbandonate, e il divario tra ambizioni dichiarate e risultati effettivi.
+
+Output richiesto: Una sintesi narrativa che integri inferenza e critica, evidenziando la coerenza interna del percorso e i momenti di rottura metodologica o concettuale. Mantieni un tono analitico ed evita speculazioni non supportate dal testo.`
+        };
+
+        window.applyPresetPrompt = function(key) {
+            const input = document.getElementById('geminiQuestion');
+            if (!input || !PRESET_PROMPTS[key]) return;
+            input.value = PRESET_PROMPTS[key];
+            window.askGemini();
+        };
+
         window.askGemini = async function() {
             const input = document.getElementById('geminiQuestion');
             const btn = document.getElementById('geminiAskBtn');
