@@ -50,3 +50,7 @@ Thumbs.db
 
 # Local dev
 *.local
+
+# Svelte build output
+frontend/dist/
+frontend/node_modules/

@@ -2227,28 +2227,6 @@
         let extractionComplete = false;
         let currentAbstractCount = 0;
 
-        // Cost estimator for Gemini extraction
-        // Extraction: ~800 input tokens (prompt+abstract) + ~400 output tokens (JSON) per paper
-        // Synthesis: ~40 tokens/extract context + 500 overhead input + 800 output tokens
-        // Pricing: Gemini 2.0 Flash $0.10/1M input, $0.40/1M output (approximate, verify at ai.google.dev/pricing)
-        function estimateExtractionCost(abstractCount) {
-            if (!abstractCount || abstractCount <= 0) return null;
-            const extractIn  = abstractCount * 800;
-            const extractOut = abstractCount * 400;
-            const synthIn    = abstractCount * 40 + 500;
-            const synthOut   = 800;
-            const totalIn    = extractIn + synthIn;
-            const totalOut   = extractOut + synthOut;
-            const usd = (totalIn / 1e6) * 0.10 + (totalOut / 1e6) * 0.40;
-            const label = usd < 0.005
-                ? '< $0.01'
-                : usd < 0.10
-                    ? `~$${usd.toFixed(3)}`
-                    : `~$${usd.toFixed(2)}`;
-            const kTokens = Math.round((totalIn + totalOut) / 1000);
-            return { label, usd, kTokens };
-        }
-        
         // Hook into displayResults to auto-store works for Gemini AND show funding
         const originalDisplayResults = window.displayResults;
         window.displayResults = function(data) {
@@ -2451,7 +2429,6 @@
                                 <p style="font-size: 0.85rem; color: var(--gray-600); max-width: 520px; line-height: 1.5;">
                                     Runs a map-reduce pipeline: each abstract is sent to Gemini Flash with a structured prompt to extract JSON (theme, methodology, finding, PICO, evidence level, drugs/conditions/biomarkers). Extracts are cached in memory and on disk; follow-up questions then query this compact cache instead of re-processing full text. Parallelized with rate limiting (~50/min). Est. ~${Math.ceil(abstractCount / 50)} min.
                                 </p>
-                                ${(() => { const est = estimateExtractionCost(abstractCount); return est ? `<p style="font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--gray-400); margin-top: 0.4rem; letter-spacing: 0.04em;">est. api cost ${est.label} &nbsp;·&nbsp; ~${est.kTokens}k tokens &nbsp;·&nbsp; gemini flash</p>` : ''; })()}
                             </div>
                             <button type="button" id="extractBtn" class="extract-btn" onclick="startExtraction()" ${extractButtonDisabled}>
                                 ${extractButtonText}

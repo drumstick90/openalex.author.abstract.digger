@@ -1,24 +1,28 @@
 """
-Gemini Analyzer - Map-Reduce architecture for processing large numbers of abstracts.
+LLM Analyzer - Map-Reduce architecture for processing large numbers of abstracts.
 
 Stage 1 (Extract): Process each abstract individually with structured questions
 Stage 2 (Synthesize): Query the cached extracts for insights
+
+Provider-agnostic: accepts any BaseLLMAdapter from llm_adapters.py.
 """
 
 import json
-import os
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 
+from llm_adapters import BaseLLMAdapter
 
-class GeminiAnalyzer:
+
+class LLMAnalyzer:
     """
-    Two-stage analysis using Gemini:
+    Two-stage analysis using any LLM provider:
     1. Extract: Per-abstract structured extraction (parallel)
     2. Synthesize: Query cached extracts for insights
     """
-    
+
     EXTRACTION_PROMPT = """You are an expert research analyst. Analyze this academic abstract and extract comprehensive structured information for a graduate-level literature review.
 
 Abstract:
@@ -86,293 +90,122 @@ Guidelines:
 
 Keep responses under 1500 characters unless more detail is requested."""
 
-    # Preferred models in order (best first)
-    PREFERRED_MODELS = [
-        "gemini-2.0-flash-exp",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-    ]
+    def __init__(self, adapter: BaseLLMAdapter):
+        self.adapter = adapter
 
-    def __init__(self, api_key: str = None, model: str = None):
-        """
-        Initialize the Gemini Analyzer.
-        
-        Args:
-            api_key: Google AI API key (or uses GEMINI_API_KEY env var)
-            model: Model to use (auto-detected if not specified)
-        """
-        import google.generativeai as genai
-        
-        self.api_key = api_key or os.environ.get('GEMINI_API_KEY', '')
-        if not self.api_key:
-            raise ValueError("Gemini API key required. Set GEMINI_API_KEY in .env")
-        
-        genai.configure(api_key=self.api_key)
-        self.genai = genai
-        
-        if model:
-            self.model = model
-            print(f"✓ Using specified model: {model}")
-        else:
-            self.model = self._find_best_model(genai)
-    
-    def _find_best_model(self, genai) -> str:
-        """Find the best available model for content generation."""
-        try:
-            available_models = []
-            for model in genai.list_models():
-                if 'generateContent' in model.supported_generation_methods:
-                    name = model.name.replace('models/', '')
-                    available_models.append(name)
-            
-            print(f"🔍 Available Gemini models: {available_models[:8]}...")
-            
-            # Find the first preferred model that's available
-            for preferred in self.PREFERRED_MODELS:
-                for available in available_models:
-                    if preferred in available:
-                        print(f"✓ Auto-selected model: {available}")
-                        return available
-            
-            # Fallback
-            for available in available_models:
-                if 'gemini' in available.lower() and 'flash' in available.lower():
-                    print(f"✓ Fallback model: {available}")
-                    return available
-            
-            raise ValueError("No suitable Gemini model found")
-            
-        except Exception as e:
-            print(f"⚠️ Could not list models: {e}. Using gemini-1.5-flash...")
-            return "gemini-1.5-flash"
-    
+    @property
+    def model(self) -> str:
+        return self.adapter.get_model_name()
+
     def extract_single(self, work: dict, max_retries: int = 3) -> dict:
-        """
-        Extract structured data from a single abstract.
-        
-        Args:
-            work: Work record with 'abstract', 'title', 'publication_year', 'openalex_id'
-            max_retries: Number of retries for rate limit errors
-            
-        Returns:
-            Dict with extracted fields or error info
-        """
-        import time
-        
         abstract = work.get('abstract')
         if not abstract:
             return {
                 'openalex_id': work.get('openalex_id'),
                 'error': 'No abstract available',
-                'extracted': False
+                'extracted': False,
             }
-        
+
         prompt = self.EXTRACTION_PROMPT.format(
             abstract=abstract,
             title=work.get('title', 'Unknown'),
-            year=work.get('publication_year', 'Unknown')
+            year=work.get('publication_year', 'Unknown'),
         )
-        
+
         last_error = None
         for attempt in range(max_retries):
             try:
-                model = self.genai.GenerativeModel(
-                    model_name=self.model,
-                    generation_config={"response_mime_type": "application/json"}
-                )
-                
-                response = model.generate_content(prompt)
-                extracted = json.loads(response.text)
-                
+                text = self.adapter.generate(prompt, json_mode=True)
+                extracted = json.loads(text)
                 return {
                     'openalex_id': work.get('openalex_id'),
                     'title': work.get('title'),
                     'year': work.get('publication_year'),
                     'extracted': True,
-                    **extracted
+                    **extracted,
                 }
-                
             except Exception as e:
                 last_error = e
                 error_str = str(e).lower()
-                
-                # Check for rate limit errors (429 or "quota" or "rate")
                 if '429' in error_str or 'quota' in error_str or 'rate' in error_str or 'resource' in error_str:
-                    # Exponential backoff: 2s, 4s, 8s
                     wait_time = 2 ** (attempt + 1)
                     print(f"⚠️ Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    # Non-rate-limit error, don't retry
                     break
-        
+
         return {
             'openalex_id': work.get('openalex_id'),
             'title': work.get('title'),
             'error': str(last_error),
-            'extracted': False
+            'extracted': False,
         }
-    
+
     def extract_all(
         self,
         works: list[dict],
         max_workers: int = 5,
         requests_per_minute: int = 50,
-        progress_callback: Callable[[int, int, str], None] = None
+        progress_callback: Callable[[int, int, str], None] = None,
     ) -> list[dict]:
-        """
-        Extract structured data from all abstracts in parallel with rate limiting.
-        
-        Args:
-            works: List of work records
-            max_workers: Number of concurrent threads (default 5)
-            requests_per_minute: Target RPM to stay under rate limits (default 50)
-            progress_callback: Optional callback(completed, total, message)
-            
-        Returns:
-            List of extracted records
-        """
-        import time
-        
-        # Filter to works with abstracts
         works_with_abstracts = [w for w in works if w.get('abstract')]
         total = len(works_with_abstracts)
-        
         if total == 0:
             return []
-        
+
         results = []
         completed = 0
         lock = threading.Lock()
-        
-        # Rate limiting: calculate delay between requests
-        # With N workers and target RPM, each worker should wait (60 * N / RPM) seconds
         min_delay = (60.0 * max_workers) / requests_per_minute
-        
+
         def process_work(work):
             nonlocal completed
             start_time = time.time()
-            
             result = self.extract_single(work)
-            
-            # Enforce minimum delay to respect rate limits
             elapsed = time.time() - start_time
             if elapsed < min_delay:
                 time.sleep(min_delay - elapsed)
-            
             with lock:
                 completed += 1
                 results.append(result)
-                
                 if progress_callback:
                     title = work.get('title', 'Unknown')[:40]
                     status = "✓" if result.get('extracted') else "⚠️"
                     progress_callback(completed, total, f"{status} {title}...")
-            
             return result
-        
-        print(f"🚀 Starting extraction of {total} abstracts...")
+
+        print(f"🚀 Starting extraction of {total} abstracts with {self.model}...")
         print(f"   Workers: {max_workers}, Target RPM: {requests_per_minute}, Min delay: {min_delay:.1f}s")
-        
         estimated_time = (total / max_workers) * min_delay
         print(f"   Estimated time: {estimated_time/60:.1f} minutes")
-        
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [executor.submit(process_work, work) for work in works_with_abstracts]
-            
-            # Wait for all to complete
             for future in as_completed(futures):
                 try:
                     future.result()
                 except Exception as e:
                     print(f"⚠️ Worker error: {e}")
-        
-        # Sort by year (newest first) for consistent ordering
+
         results.sort(key=lambda x: x.get('year') or 0, reverse=True)
-        
         success_count = sum(1 for r in results if r.get('extracted'))
         print(f"✓ Extraction complete: {success_count}/{total} successful")
-        
         return results
-    
-    def synthesize(
-        self,
-        extracts: list[dict],
-        question: str,
-        author_name: str = None
-    ) -> dict:
-        """
-        Synthesize insights from cached extracts.
-        
-        Args:
-            extracts: List of extracted records from extract_all()
-            question: User's question
-            author_name: Optional author name for context
-            
-        Returns:
-            Dict with 'answer', 'extracts_used', 'model'
-        """
-        # Filter to successful extracts
+
+    def synthesize(self, extracts: list[dict], question: str,
+                   author_name: str = None) -> dict:
         valid_extracts = [e for e in extracts if e.get('extracted')]
-        
         if not valid_extracts:
             return {
                 "answer": "No extracted data available. Please run extraction first.",
                 "extracts_used": 0,
-                "model": self.model
+                "model": self.model,
             }
-        
-        # Build context from extracts (much smaller than raw abstracts!)
-        context_parts = []
-        for i, ext in enumerate(valid_extracts, 1):
-            # Core fields
-            parts = [f"[{i}] {ext.get('title', 'Untitled')} ({ext.get('year', 'N/A')})"]
-            parts.append(f"  Theme: {ext.get('theme', 'N/A')}")
-            parts.append(f"  Method: {ext.get('methodology', 'N/A')}")
-            parts.append(f"  Finding: {ext.get('finding', 'N/A')}")
-            parts.append(f"  Type: {ext.get('study_type', 'N/A')} | Evidence Level: {ext.get('evidence_level', 'N/A')} | Novelty: {ext.get('novelty', 'N/A')}")
-            
-            # PICO (if available)
-            if ext.get('population'):
-                parts.append(f"  Population: {ext.get('population')}")
-            if ext.get('intervention'):
-                parts.append(f"  Intervention: {ext.get('intervention')}")
-            if ext.get('sample_size') and ext.get('sample_size') != 'N/A':
-                parts.append(f"  Sample: {ext.get('sample_size')}")
-            
-            # Entities (if available)
-            if ext.get('drugs_studied'):
-                parts.append(f"  Drugs: {', '.join(ext.get('drugs_studied', []))}")
-            if ext.get('conditions'):
-                parts.append(f"  Conditions: {', '.join(ext.get('conditions', []))}")
-            if ext.get('biomarkers'):
-                parts.append(f"  Biomarkers: {', '.join(ext.get('biomarkers', []))}")
-            
-            # Clinical implication
-            if ext.get('clinical_implication'):
-                parts.append(f"  Clinical Implication: {ext.get('clinical_implication')}")
-            
-            # Limitations
-            if ext.get('limitations'):
-                parts.append(f"  Limitations: {ext.get('limitations')}")
-            
-            # Keywords
-            parts.append(f"  Keywords: {', '.join(ext.get('keywords', []))}")
-            
-            context_parts.append("\n".join(parts))
-        
-        context = "\n\n".join(context_parts)
-        
-        # Estimate tokens (extracts are much more compact)
+
+        context = self._build_extract_context(valid_extracts)
         estimated_tokens = int(len(context.split()) * 1.3)
-        
-        model = self.genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=self.SYNTHESIS_SYSTEM_PROMPT
-        )
-        
+
         prompt = f"""Author: {author_name or 'Unknown'}
 Total publications analyzed: {len(valid_extracts)}
 
@@ -384,63 +217,31 @@ Question: {question}
 
 Synthesize insights based on the extracted metadata above."""
 
-        print(f"📤 Synthesizing from {len(valid_extracts)} extracts ({estimated_tokens} est. tokens)...")
-        
-        response = model.generate_content(
-            prompt,
-            generation_config=self.genai.types.GenerationConfig(temperature=0.5)
-        )
-        
-        print(f"✓ Synthesis complete")
-        
+        print(f"📤 Synthesizing from {len(valid_extracts)} extracts ({estimated_tokens} est. tokens) with {self.model}...")
+        text = self.adapter.generate(prompt, system_prompt=self.SYNTHESIS_SYSTEM_PROMPT)
+        print("✓ Synthesis complete")
+
         return {
-            "answer": response.text,
+            "answer": text,
             "extracts_used": len(valid_extracts),
             "model": self.model,
-            "estimated_tokens": estimated_tokens
+            "estimated_tokens": estimated_tokens,
         }
-    
-    def analyze(
-        self,
-        question: str,
-        works: list[dict],
-        author_name: str = None
-    ) -> dict:
-        """
-        Legacy method: Analyze ALL abstracts directly (no caching).
-        Use synthesize() with cached extracts for better performance.
-        
-        Args:
-            question: User's question
-            works: ALL work records 
-            author_name: Author's name for context
-            
-        Returns:
-            Dict with 'answer', 'works_analyzed', 'model', etc.
-        """
-        # Filter works with abstracts
+
+    def analyze(self, question: str, works: list[dict],
+                author_name: str = None) -> dict:
         works_with_abstracts = [w for w in works if w.get('abstract')]
-        
         if not works_with_abstracts:
             return {
                 "answer": "No abstracts available to analyze.",
                 "works_analyzed": 0,
                 "total_works": len(works),
-                "model": self.model
+                "model": self.model,
             }
-        
-        # Build full context
-        context = self._build_context(works_with_abstracts)
-        
-        # Estimate tokens
+
+        context = self._build_abstract_context(works_with_abstracts)
         estimated_tokens = int(len(context.split()) * 1.3)
-        
-        # Generate
-        model = self.genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=self.SYNTHESIS_SYSTEM_PROMPT
-        )
-        
+
         prompt = f"""Author: {author_name or 'Unknown'}
 Total publications with abstracts: {len(works_with_abstracts)}
 
@@ -452,41 +253,59 @@ Question: {question}
 
 Please provide a comprehensive analysis based on ALL the abstracts above."""
 
-        print(f"📤 Sending {len(works_with_abstracts)} abstracts to Gemini ({estimated_tokens} est. tokens)...")
-        
-        response = model.generate_content(
-            prompt,
-            generation_config=self.genai.types.GenerationConfig(temperature=0.5)
-        )
-        
-        print(f"✓ Gemini response received")
-        
+        print(f"📤 Sending {len(works_with_abstracts)} abstracts to {self.model} ({estimated_tokens} est. tokens)...")
+        text = self.adapter.generate(prompt, system_prompt=self.SYNTHESIS_SYSTEM_PROMPT)
+        print("✓ Analysis complete")
+
         return {
-            "answer": response.text,
+            "answer": text,
             "works_analyzed": len(works_with_abstracts),
             "total_works": len(works),
             "model": self.model,
-            "estimated_tokens": estimated_tokens
+            "estimated_tokens": estimated_tokens,
         }
-    
-    def _build_context(self, works: list[dict]) -> str:
-        """Build context string with ALL abstracts."""
+
+    # ── helpers ──────────────────────────────────────────────
+
+    @staticmethod
+    def _build_extract_context(extracts: list[dict]) -> str:
         parts = []
-        
-        # Sort by year (newest first)
-        sorted_works = sorted(
-            works, 
-            key=lambda w: w.get('publication_year') or 0, 
-            reverse=True
-        )
-        
+        for i, ext in enumerate(extracts, 1):
+            lines = [f"[{i}] {ext.get('title', 'Untitled')} ({ext.get('year', 'N/A')})"]
+            lines.append(f"  Theme: {ext.get('theme', 'N/A')}")
+            lines.append(f"  Method: {ext.get('methodology', 'N/A')}")
+            lines.append(f"  Finding: {ext.get('finding', 'N/A')}")
+            lines.append(f"  Type: {ext.get('study_type', 'N/A')} | Evidence Level: {ext.get('evidence_level', 'N/A')} | Novelty: {ext.get('novelty', 'N/A')}")
+            if ext.get('population'):
+                lines.append(f"  Population: {ext['population']}")
+            if ext.get('intervention'):
+                lines.append(f"  Intervention: {ext['intervention']}")
+            if ext.get('sample_size') and ext['sample_size'] != 'N/A':
+                lines.append(f"  Sample: {ext['sample_size']}")
+            if ext.get('drugs_studied'):
+                lines.append(f"  Drugs: {', '.join(ext['drugs_studied'])}")
+            if ext.get('conditions'):
+                lines.append(f"  Conditions: {', '.join(ext['conditions'])}")
+            if ext.get('biomarkers'):
+                lines.append(f"  Biomarkers: {', '.join(ext['biomarkers'])}")
+            if ext.get('clinical_implication'):
+                lines.append(f"  Clinical Implication: {ext['clinical_implication']}")
+            if ext.get('limitations'):
+                lines.append(f"  Limitations: {ext['limitations']}")
+            lines.append(f"  Keywords: {', '.join(ext.get('keywords', []))}")
+            parts.append("\n".join(lines))
+        return "\n\n".join(parts)
+
+    @staticmethod
+    def _build_abstract_context(works: list[dict]) -> str:
+        sorted_works = sorted(works, key=lambda w: w.get('publication_year') or 0, reverse=True)
+        parts = []
         for i, work in enumerate(sorted_works, 1):
-            title = work.get('title', 'Untitled')
-            year = work.get('publication_year', 'N/A')
-            abstract = work.get('abstract', '')
-            
-            parts.append(f"[{i}] {title} ({year})")
-            parts.append(f"{abstract}")
+            parts.append(f"[{i}] {work.get('title', 'Untitled')} ({work.get('publication_year', 'N/A')})")
+            parts.append(work.get('abstract', ''))
             parts.append("")
-        
         return "\n".join(parts)
+
+
+# Backwards-compatible alias
+GeminiAnalyzer = LLMAnalyzer

@@ -29,18 +29,29 @@ DEFAULT_EMAIL = "openalex-user@example.com"
 pyalex.config.email = DEFAULT_EMAIL
 set_entrez_email(DEFAULT_EMAIL)
 
-# Gemini blueprint
-from gemini_routes import gemini_bp
+# AI blueprints
+from gemini_routes import gemini_bp, ai_bp
 app.register_blueprint(gemini_bp)
+app.register_blueprint(ai_bp)
 
 
 # ---------------------------------------------------------------------------
 # Static / health
 # ---------------------------------------------------------------------------
 
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), 'frontend', 'dist')
+
+
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    if os.path.isfile(os.path.join(FRONTEND_DIST, 'index.html')):
+        return send_from_directory(FRONTEND_DIST, 'index.html')
+    return send_from_directory('.', 'index.legacy.html')
+
+
+@app.route('/assets/<path:filename>')
+def frontend_assets(filename):
+    return send_from_directory(os.path.join(FRONTEND_DIST, 'assets'), filename)
 
 
 @app.route('/api/health')
@@ -125,17 +136,12 @@ def search_author():
     """
     data = request.get_json() or {}
     identifier = data.get('identifier', '').strip()
-    email = data.get('email', '').strip()
     affiliation = data.get('affiliation', '').strip() or None
     pubmed_fallback = data.get('pubmed_fallback', False)
     session_id = data.get('session_id')
 
     if not identifier:
         return jsonify({'error': 'Please provide an author identifier'}), 400
-
-    if email:
-        pyalex.config.email = email
-        set_entrez_email(email)
 
     from author_resolver import is_openalex_id, is_orcid, resolve_by_name
 

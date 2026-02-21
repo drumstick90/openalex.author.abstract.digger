@@ -4,9 +4,11 @@
 bind = "127.0.0.1:8000"
 
 # Worker configuration
-workers = 2  # Adjust based on droplet CPU cores (2 * cores + 1)
-worker_class = "sync"
-threads = 4
+# Single worker keeps all in-memory SSE queues in one process.
+# gthread handles concurrency via OS threads (I/O-bound workload).
+workers = 1
+worker_class = "gthread"
+threads = 8
 
 # Timeouts
 timeout = 120  # API calls to OpenAlex can be slow

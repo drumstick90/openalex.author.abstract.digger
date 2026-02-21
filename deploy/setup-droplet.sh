@@ -22,6 +22,11 @@ apt update && apt upgrade -y
 echo "📦 Installing Python 3.11 and Caddy..."
 apt install -y python3.11 python3.11-venv python3.11-dev git curl
 
+# Install Node.js 20 (for Svelte frontend build)
+echo "📦 Installing Node.js 20..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+
 # Install Caddy
 apt install -y debian-keyring debian-archive-keyring apt-transport-https
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
@@ -52,6 +57,11 @@ echo "   cd $APP_DIR"
 echo "   python3.11 -m venv venv"
 echo "   source venv/bin/activate"
 echo "   pip install -r requirements-rag.txt"
+echo ""
+echo "2b. Build the Svelte frontend:"
+echo "   cd $APP_DIR/frontend"
+echo "   npm install"
+echo "   npm run build"
 echo ""
 echo "3. Configure Caddy (edit domain in Caddyfile):"
 echo "   nano $APP_DIR/deploy/Caddyfile  # Change YOUR_DOMAIN.com"
