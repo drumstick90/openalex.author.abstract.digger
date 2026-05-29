@@ -11,7 +11,8 @@ Map-Reduce architecture with multi-provider support (Gemini, OpenAI, Anthropic):
 import json
 import queue
 import threading
-from flask import Blueprint, request, jsonify, Response
+import uuid
+from flask import Blueprint, request, jsonify, Response, session
 
 from gemini_analyzer import LLMAnalyzer
 from llm_adapters import create_adapter, get_providers_info
@@ -43,6 +44,28 @@ def _get_ai_config(data: dict) -> dict:
     }
 
 
+def _get_session_scope(data: dict) -> str:
+    """
+    Resolve a stable per-user scope for in-memory/cache isolation.
+    Priority:
+      1) explicit session_scope in request body
+      2) Flask session cookie-backed scope
+    """
+    explicit = (data.get("session_scope") or "").strip()
+    if explicit:
+        return explicit
+
+    scope = session.get("app_session_scope")
+    if not scope:
+        scope = f"s_{uuid.uuid4().hex}"
+        session["app_session_scope"] = scope
+    return scope
+
+
+def _queue_key(session_scope: str, session_id: str) -> str:
+    return f"{session_scope}:{session_id}"
+
+
 def _make_analyzer(data: dict) -> LLMAnalyzer:
     """Create an LLMAnalyzer from request-level AI config."""
     cfg = _get_ai_config(data)
@@ -62,6 +85,7 @@ def providers_endpoint():
 @gemini_bp.route('/store', methods=['POST'])
 def store_works_endpoint():
     data = request.get_json() or {}
+    session_scope = _get_session_scope(data)
     works = data.get('works', [])
     author_name = data.get('author_name')
     author_id = data.get('author_id')
@@ -69,9 +93,9 @@ def store_works_endpoint():
     if not works:
         return jsonify({'error': 'No works provided'}), 400
 
-    store_works(works, author_name, author_id)
+    store_works(works, author_name, author_id, session_scope=session_scope)
     with_abstracts = sum(1 for w in works if w.get('abstract'))
-    cached = load_extracts_from_file(author_id)
+    cached = load_extracts_from_file(author_id, session_scope=session_scope)
 
     return jsonify({
         'stored': len(works),
@@ -79,6 +103,7 @@ def store_works_endpoint():
         'author_name': author_name,
         'has_cached_extracts': len(cached) > 0,
         'cached_extracts_count': len(cached),
+        'session_scope': session_scope,
     })
 
 
@@ -87,16 +112,18 @@ def store_works_endpoint():
 @gemini_bp.route('/extract-all', methods=['POST'])
 def extract_all_endpoint():
     data = request.get_json() or {}
+    session_scope = _get_session_scope(data)
     session_id = data.get('session_id', 'default')
+    key = _queue_key(session_scope, session_id)
     max_workers = min(data.get('max_workers', 5), 10)
     rpm = min(data.get('rpm', 50), 100)
     ai_cfg = _get_ai_config(data)
 
-    works, author_name = get_stored_works()
+    works, author_name = get_stored_works(session_scope=session_scope)
     if not works:
         return jsonify({'error': 'No works stored. Search for an author first.'}), 400
 
-    if is_extraction_in_progress():
+    if is_extraction_in_progress(session_scope=session_scope):
         return jsonify({'error': 'Extraction already in progress'}), 409
 
     try:
@@ -105,11 +132,11 @@ def extract_all_endpoint():
         return jsonify({'error': str(e)}), 400
 
     progress_queue = queue.Queue(maxsize=1000)
-    extraction_queues[session_id] = progress_queue
+    extraction_queues[key] = progress_queue
 
     def run_extraction():
         try:
-            set_extraction_in_progress(True)
+            set_extraction_in_progress(True, session_scope=session_scope)
             analyzer = LLMAnalyzer(adapter)
 
             def progress_callback(completed, total, message):
@@ -130,8 +157,8 @@ def extract_all_endpoint():
                 progress_callback=progress_callback,
             )
 
-            set_cached_extracts(extracts)
-            save_extracts_to_file(extracts)
+            set_cached_extracts(extracts, session_scope=session_scope)
+            save_extracts_to_file(extracts, session_scope=session_scope)
 
             success_count = sum(1 for e in extracts if e.get('extracted'))
             progress_queue.put({
@@ -143,7 +170,7 @@ def extract_all_endpoint():
         except Exception as e:
             progress_queue.put({'phase': 'error', 'error': str(e)})
         finally:
-            set_extraction_in_progress(False)
+            set_extraction_in_progress(False, session_scope=session_scope)
 
     thread = threading.Thread(target=run_extraction, daemon=True)
     thread.start()
@@ -153,6 +180,7 @@ def extract_all_endpoint():
         'session_id': session_id,
         'total_works': len(works),
         'with_abstracts': sum(1 for w in works if w.get('abstract')),
+        'session_scope': session_scope,
     })
 
 
@@ -161,7 +189,9 @@ def extract_all_endpoint():
 @gemini_bp.route('/extract-progress/<session_id>')
 def extract_progress_stream(session_id):
     def generate():
-        q = extraction_queues.get(session_id)
+        session_scope = _get_session_scope({})
+        key = _queue_key(session_scope, session_id)
+        q = extraction_queues.get(key)
         if not q:
             yield f"data: {json.dumps({'error': 'No active extraction for this session'})}\n\n"
             return
@@ -174,7 +204,7 @@ def extract_progress_stream(session_id):
                     break
             except queue.Empty:
                 yield ": keepalive\n\n"
-        extraction_queues.pop(session_id, None)
+        extraction_queues.pop(key, None)
 
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
@@ -188,20 +218,21 @@ def extract_progress_stream(session_id):
 @gemini_bp.route('/synthesize', methods=['POST'])
 def synthesize_endpoint():
     data = request.get_json() or {}
+    session_scope = _get_session_scope(data)
     question = data.get('question', '').strip()
     if not question:
         return jsonify({'error': 'Question is required'}), 400
 
-    extracts = get_cached_extracts()
+    extracts = get_cached_extracts(session_scope=session_scope)
     if not extracts:
-        extracts = load_extracts_from_file()
+        extracts = load_extracts_from_file(session_scope=session_scope)
     if not extracts:
         return jsonify({
             'error': 'No cached extracts available. Please run extraction first.',
             'needs_extraction': True,
         }), 400
 
-    _, author_name = get_stored_works()
+    _, author_name = get_stored_works(session_scope=session_scope)
 
     try:
         analyzer = _make_analyzer(data)
@@ -220,6 +251,7 @@ def synthesize_endpoint():
 @gemini_bp.route('/analyze', methods=['POST'])
 def analyze_endpoint():
     data = request.get_json() or {}
+    session_scope = _get_session_scope(data)
     question = data.get('question', '').strip()
     use_cache = data.get('use_cache', True)
 
@@ -227,11 +259,11 @@ def analyze_endpoint():
         return jsonify({'error': 'Question is required'}), 400
 
     if use_cache:
-        extracts = get_cached_extracts()
+        extracts = get_cached_extracts(session_scope=session_scope)
         if not extracts:
-            extracts = load_extracts_from_file()
+            extracts = load_extracts_from_file(session_scope=session_scope)
         if extracts:
-            _, author_name = get_stored_works()
+            _, author_name = get_stored_works(session_scope=session_scope)
             try:
                 analyzer = _make_analyzer(data)
                 result = analyzer.synthesize(extracts=extracts, question=question, author_name=author_name)
@@ -239,7 +271,7 @@ def analyze_endpoint():
             except Exception as e:
                 print(f"Cache synthesis failed, falling back to direct: {e}")
 
-    works, author_name = get_stored_works()
+    works, author_name = get_stored_works(session_scope=session_scope)
     if not works:
         return jsonify({'error': 'No works stored. Search for an author first.'}), 400
 
@@ -259,11 +291,12 @@ def analyze_endpoint():
 
 @gemini_bp.route('/status', methods=['GET'])
 def status_endpoint():
-    works, author_name = get_stored_works()
+    session_scope = _get_session_scope({})
+    works, author_name = get_stored_works(session_scope=session_scope)
     with_abstracts = sum(1 for w in works if w.get('abstract'))
-    extracts = get_cached_extracts()
+    extracts = get_cached_extracts(session_scope=session_scope)
     if not extracts:
-        extracts = load_extracts_from_file()
+        extracts = load_extracts_from_file(session_scope=session_scope)
     extracted_count = sum(1 for e in extracts if e.get('extracted')) if extracts else 0
 
     return jsonify({
@@ -271,18 +304,20 @@ def status_endpoint():
         'with_abstracts': with_abstracts,
         'author_name': author_name,
         'ready': len(works) > 0,
-        'extraction_in_progress': is_extraction_in_progress(),
+        'extraction_in_progress': is_extraction_in_progress(session_scope=session_scope),
         'has_cached_extracts': len(extracts) > 0,
         'cached_extracts_count': len(extracts),
         'successful_extracts': extracted_count,
+        'session_scope': session_scope,
     })
 
 
 @gemini_bp.route('/extracts', methods=['GET'])
 def get_extracts_endpoint():
-    extracts = get_cached_extracts()
+    session_scope = _get_session_scope({})
+    extracts = get_cached_extracts(session_scope=session_scope)
     if not extracts:
-        extracts = load_extracts_from_file()
+        extracts = load_extracts_from_file(session_scope=session_scope)
     if not extracts:
         return jsonify({'error': 'No cached extracts available'}), 404
 
@@ -339,5 +374,48 @@ def get_extracts_endpoint():
 
 @gemini_bp.route('/clear', methods=['POST'])
 def clear_endpoint():
-    clear_stored()
+    session_scope = _get_session_scope({})
+    clear_stored(session_scope=session_scope)
     return jsonify({'success': True, 'message': 'Cleared works and extracts'})
+
+
+# ── /api/ai aliases (generic naming) ────────────────────────
+
+@ai_bp.route('/store', methods=['POST'])
+def ai_store_endpoint():
+    return store_works_endpoint()
+
+
+@ai_bp.route('/extract-all', methods=['POST'])
+def ai_extract_all_endpoint():
+    return extract_all_endpoint()
+
+
+@ai_bp.route('/extract-progress/<session_id>')
+def ai_extract_progress_endpoint(session_id):
+    return extract_progress_stream(session_id)
+
+
+@ai_bp.route('/synthesize', methods=['POST'])
+def ai_synthesize_endpoint():
+    return synthesize_endpoint()
+
+
+@ai_bp.route('/analyze', methods=['POST'])
+def ai_analyze_endpoint():
+    return analyze_endpoint()
+
+
+@ai_bp.route('/status', methods=['GET'])
+def ai_status_endpoint():
+    return status_endpoint()
+
+
+@ai_bp.route('/extracts', methods=['GET'])
+def ai_extracts_endpoint():
+    return get_extracts_endpoint()
+
+
+@ai_bp.route('/clear', methods=['POST'])
+def ai_clear_endpoint():
+    return clear_endpoint()

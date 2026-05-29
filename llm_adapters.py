@@ -138,6 +138,15 @@ def resolve_api_key(provider: str, user_key: str | None) -> str:
 def create_adapter(provider: str = "gemini", api_key: str | None = None,
                    model: str | None = None) -> BaseLLMAdapter:
     """Factory: instantiate the right adapter for the given provider."""
+    if provider not in PROVIDER_CATALOG:
+        raise ValueError(f"Unknown provider: {provider}")
+
+    if model and model not in PROVIDER_CATALOG[provider]["models"]:
+        raise ValueError(
+            f"Invalid model '{model}' for provider '{provider}'. "
+            f"Allowed: {', '.join(PROVIDER_CATALOG[provider]['models'])}"
+        )
+
     key = resolve_api_key(provider, api_key)
 
     if provider == "gemini":

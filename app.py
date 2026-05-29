@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")
 
 # SSE progress streams: session_id -> queue
 progress_streams: dict[str, queue.Queue] = {}
